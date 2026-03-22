@@ -12,9 +12,31 @@
   "app": {
     "windows": [
       {
-        "title": "lens-note",
-        "width": 800,
-        "height": 600
+        "label": "overlay",
+        "url": "overlay.html",
+        "width": 480,
+        "height": 160,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": true,
+        "focus": false,
+        "focusable": false,
+        "shadow": false,
+        "visibleOnAllWorkspaces": true,
+        "acceptFirstMouse": true
+      },
+      {
+        "label": "editor",
+        "url": "editor.html",
+        "title": "Interview Prompter — Editor",
+        "width": 900,
+        "height": 640,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "alwaysOnTop": false
       }
     ],
     "security": {
