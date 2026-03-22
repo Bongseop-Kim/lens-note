@@ -1,15 +1,16 @@
 # Implementation Phases
 
 ## Phase 1 — Core Shell
+
 > macOS 검증 필수
 
-- [ ] `create-tauri-app` bootstrap with React+TS template
-- [ ] Two windows configured (`overlay`, `editor`) in `tauri.conf.json`
-- [ ] Transparent frameless overlay renders "Hello" text
-- [ ] `NSWindow.level` floating 설정 (→ ADR-002)
-- [ ] `NSNonactivatingPanel` 설정 (→ ADR-001)
-- [ ] Draggable overlay via `data-tauri-drag-region`
-- [ ] **[검증 체크포인트]** Zoom 실행 후 오버레이가 위에 뜨고, 클릭해도 Zoom 포커스 유지되는지 확인
+- [x] `create-tauri-app` bootstrap with React+TS template
+- [x] Two windows configured (`overlay`, `editor`) in `tauri.conf.json`
+- [x] Transparent frameless overlay renders "Hello" text
+- [x] `NSWindow.level` floating 설정 (→ ADR-002)
+- [x] `NSNonactivatingPanel` 설정 (→ ADR-001)
+- [x] Draggable overlay via `data-tauri-drag-region`
+- [x] **[검증 체크포인트]** Zoom 실행 후 오버레이가 위에 뜨고, 클릭해도 Zoom 포커스 유지되는지 확인
 
 ## Phase 2 — Data Layer
 
@@ -20,6 +21,7 @@
 - [ ] Preferences persistence
 
 ## Phase 3 — Navigation
+
 > 권한 처리 포함
 
 - [ ] Accessibility 권한 체크 로직 (→ ADR-005)
