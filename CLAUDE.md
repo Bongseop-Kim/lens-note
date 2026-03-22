@@ -3,7 +3,7 @@
 ## Project
 - **Name**: interview-prompter
 - **Stack**: Tauri 2 + React + TypeScript
-- **Platform**: macOS only (Ventura 13+, Universal Binary)
+- **Platform**: macOS-first (Ventura 13+, Universal Binary); cross-platform compatibility is a secondary goal
 
 ## Key Docs
 - Product requirements → `docs/PRD.md`
@@ -13,7 +13,7 @@
 - Feature backlog → `backlog.md`
 
 ## Rules
-1. macOS-only code must be gated with `#[cfg(target_os = "macos")]`
+1. macOS-specific code must be gated with `#[cfg(target_os = "macos")]`; prefer cross-platform APIs where available
 2. Do not add dependencies outside `docs/architecture.md#tech-stack` without noting rationale in `docs/decisions/`
 3. Follow file structure in `docs/architecture.md#file-structure` exactly
 4. Use data types from `docs/architecture.md#data-model` verbatim
