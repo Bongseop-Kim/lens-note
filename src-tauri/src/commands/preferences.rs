@@ -64,6 +64,18 @@ impl Default for Preferences {
     }
 }
 
+impl Preferences {
+    pub fn clamped(self) -> Self {
+        Self {
+            opacity: self.opacity.clamp(0.4, 1.0),
+            font_size: self.font_size.clamp(8.0, 72.0),
+            overlay_width: self.overlay_width.clamp(200.0, 2000.0),
+            overlay_height: self.overlay_height.clamp(50.0, 1000.0),
+            ..self
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct PrefsUpdatedPayload {
@@ -91,6 +103,7 @@ pub async fn write_prefs(
     prefs: Preferences,
     client_id: Option<String>,
 ) -> Result<(), String> {
+    let prefs = prefs.clamped();
     let path = prefs_path(&app)?;
     super::ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(&prefs).map_err(|e| e.to_string())?;

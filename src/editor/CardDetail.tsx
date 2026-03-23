@@ -77,6 +77,7 @@ export default function CardDetail({
           placeholder="카드 제목"
         />
         <button
+          type="button"
           className="ml-4 text-red-400 hover:text-red-600"
           aria-label="Delete card"
           title="카드 삭제"
@@ -90,6 +91,7 @@ export default function CardDetail({
           <span key={tag} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
             {tag}
             <button
+              type="button"
               onClick={() => removeTag(tag)}
               className="hover:text-red-500"
               aria-label={`Remove tag ${tag}`}
