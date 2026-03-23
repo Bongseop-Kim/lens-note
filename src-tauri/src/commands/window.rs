@@ -1,7 +1,35 @@
+use tauri::Manager;
+
+fn validated_i32(value: f64, field: &str) -> Result<i32, String> {
+    if !value.is_finite() {
+        return Err(format!("{field} must be a finite number"));
+    }
+    if value < i32::MIN as f64 || value > i32::MAX as f64 {
+        return Err(format!(
+            "{field} must be between {} and {}",
+            i32::MIN,
+            i32::MAX
+        ));
+    }
+    Ok(value as i32)
+}
+
+fn validated_u32(value: f64, field: &str) -> Result<u32, String> {
+    if !value.is_finite() {
+        return Err(format!("{field} must be a finite number"));
+    }
+    if value < 0.0 {
+        return Err(format!("{field} must be non-negative"));
+    }
+    if value > u32::MAX as f64 {
+        return Err(format!("{field} must be at most {}", u32::MAX));
+    }
+    Ok(value as u32)
+}
+
 #[cfg(target_os = "macos")]
 pub fn configure_overlay_window(app: &tauri::AppHandle) {
     use objc2_app_kit::{NSFloatingWindowLevel, NSWindow, NSWindowCollectionBehavior};
-    use tauri::Manager;
 
     let Some(overlay) = app.get_webview_window("overlay") else {
         eprintln!("configure_overlay_window: 'overlay' window not found");
@@ -28,4 +56,28 @@ pub fn configure_overlay_window(app: &tauri::AppHandle) {
                 | NSWindowCollectionBehavior::IgnoresCycle,
         );
     }
+}
+
+#[tauri::command]
+pub async fn set_overlay_bounds(
+    app: tauri::AppHandle,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        let validated_x = validated_i32(x, "x")?;
+        let validated_y = validated_i32(y, "y")?;
+        let validated_width = validated_u32(width, "width")?;
+        let validated_height = validated_u32(height, "height")?;
+
+        overlay
+            .set_position(tauri::PhysicalPosition::new(validated_x, validated_y))
+            .map_err(|e| e.to_string())?;
+        overlay
+            .set_size(tauri::PhysicalSize::new(validated_width, validated_height))
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }

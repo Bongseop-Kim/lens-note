@@ -8,7 +8,7 @@ pub enum Theme {
     Light,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(default, rename_all = "camelCase")]
 pub struct HotkeyConfig {
     pub next: String,
@@ -64,13 +64,46 @@ impl Default for Preferences {
     }
 }
 
+pub fn load_prefs_sync(app: &tauri::AppHandle) -> Preferences {
+    let path = match prefs_path(app) {
+        Ok(path) => path,
+        Err(error) => {
+            eprintln!("Failed to resolve preferences path: {error}");
+            return Preferences::default();
+        }
+    };
+
+    match std::fs::read_to_string(&path) {
+        Ok(content) => match serde_json::from_str::<Preferences>(&content) {
+            Ok(prefs) => prefs.clamped(),
+            Err(error) => {
+                eprintln!("Failed to parse preferences file '{}': {error}", path.display());
+                Preferences::default()
+            }
+        },
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Preferences::default(),
+        Err(error) => {
+            eprintln!("Failed to read preferences file '{}': {error}", path.display());
+            Preferences::default()
+        }
+    }
+}
+
 impl Preferences {
     pub fn clamped(self) -> Self {
+        fn finite_or(value: f64, fallback: f64) -> f64 {
+            if value.is_finite() { value } else { fallback }
+        }
+
+        let d = Self::default();
         Self {
-            opacity: self.opacity.clamp(0.4, 1.0),
-            font_size: self.font_size.clamp(8.0, 72.0),
-            overlay_width: self.overlay_width.clamp(200.0, 2000.0),
-            overlay_height: self.overlay_height.clamp(50.0, 1000.0),
+            opacity: finite_or(self.opacity, d.opacity).clamp(0.4, 1.0),
+            font_size: finite_or(self.font_size, d.font_size).clamp(8.0, 72.0),
+            line_height: finite_or(self.line_height, d.line_height).clamp(1.0, 3.0),
+            overlay_width: finite_or(self.overlay_width, d.overlay_width).clamp(200.0, 2000.0),
+            overlay_height: finite_or(self.overlay_height, d.overlay_height).clamp(50.0, 1000.0),
+            overlay_x: finite_or(self.overlay_x, d.overlay_x).clamp(-10_000.0, 10_000.0),
+            overlay_y: finite_or(self.overlay_y, d.overlay_y).clamp(-10_000.0, 10_000.0),
             ..self
         }
     }
@@ -91,7 +124,9 @@ fn prefs_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
 pub async fn read_prefs(app: tauri::AppHandle) -> Result<Preferences, String> {
     let path = prefs_path(&app)?;
     match tokio::fs::read_to_string(&path).await {
-        Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string()),
+        Ok(content) => serde_json::from_str::<Preferences>(&content)
+            .map(|p| p.clamped())
+            .map_err(|e| e.to_string()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Preferences::default()),
         Err(e) => Err(e.to_string()),
     }
@@ -104,6 +139,12 @@ pub async fn write_prefs(
     client_id: Option<String>,
 ) -> Result<(), String> {
     let prefs = prefs.clamped();
+    let saved_prefs = load_prefs_sync(&app);
+    if prefs.hotkeys != saved_prefs.hotkeys {
+        if let Err(error) = crate::register_configured_hotkeys(&app, &prefs.hotkeys) {
+            eprintln!("Failed to apply updated hotkeys: {error}");
+        }
+    }
     let path = prefs_path(&app)?;
     super::ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(&prefs).map_err(|e| e.to_string())?;
