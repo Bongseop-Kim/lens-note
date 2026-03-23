@@ -19,6 +19,12 @@ const CORNER_CURSORS: Record<Corner, string> = {
   tl: "nw-resize", tr: "ne-resize", bl: "sw-resize", br: "se-resize",
 };
 
+const CURSOR = {
+  default: "crosshair",
+  move: "move",
+  resize: "nwse-resize",
+} as const;
+
 type DragState =
   | { type: "create"; ox: number; oy: number }
   | { type: "move"; offX: number; offY: number }
@@ -52,14 +58,24 @@ function anchorForCorner(corner: Corner, r: DisplayRect): { anchorX: number; anc
 
 export default function ZonePicker() {
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeMonitorIdx, setActiveMonitorIdx] = useState(0);
   const [selection, setSelection] = useState<DisplayRect | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
-  const [hoverCursor, setHoverCursor] = useState("crosshair");
+  const [hoverCursor, setHoverCursor] = useState(CURSOR.default);
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    invoke<MonitorInfo[]>("get_monitors").then(setMonitors).catch(console.error);
+    invoke<MonitorInfo[]>("get_monitors")
+      .then((result) => {
+        setMonitors(result);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        setFetchError(String(err));
+        setIsLoading(false);
+      });
   }, []);
 
   const monitor = monitors[activeMonitorIdx];
@@ -91,7 +107,7 @@ export default function ZonePicker() {
   }
 
   function finalizeDrag() {
-    if (selection && selection.w > 2 && selection.h > 2) {
+    if (drag && selection && selection.w > 2 && selection.h > 2) {
       applySelection(selection);
     }
     setDrag(null);
@@ -124,7 +140,7 @@ export default function ZonePicker() {
     if (!drag) {
       if (selection) {
         const corner = nearCorner(pt.x, pt.y, selection);
-        const next = corner ? CORNER_CURSORS[corner] : insideRect(pt.x, pt.y, selection) ? "move" : "crosshair";
+        const next = corner ? CORNER_CURSORS[corner] : insideRect(pt.x, pt.y, selection) ? CURSOR.move : CURSOR.default;
         if (next !== hoverCursor) setHoverCursor(next);
       }
       return;
@@ -161,14 +177,20 @@ export default function ZonePicker() {
 
   function mapCursor(): string {
     if (drag) {
-      if (drag.type === "move") return "move";
-      if (drag.type === "resize") return "nwse-resize";
+      if (drag.type === "move") return CURSOR.move;
+      if (drag.type === "resize") return CURSOR.resize;
     }
     return hoverCursor;
   }
 
-  if (!monitor) {
+  if (isLoading) {
     return <div className="p-4 text-muted-foreground text-sm">모니터 정보를 불러오는 중...</div>;
+  }
+  if (fetchError) {
+    return <div className="p-4 text-destructive text-sm">모니터 정보를 불러오지 못했습니다: {fetchError}</div>;
+  }
+  if (!monitor) {
+    return <div className="p-4 text-muted-foreground text-sm">연결된 모니터가 없습니다.</div>;
   }
 
   const scale = minimapScale(monitor);
@@ -187,7 +209,7 @@ export default function ZonePicker() {
             <button
               key={m.name || String(i)}
               type="button"
-              onClick={() => { setActiveMonitorIdx(i); setSelection(null); setDrag(null); }}
+              onClick={() => { setActiveMonitorIdx(i); setSelection(null); setDrag(null); setHoverCursor(CURSOR.default); }}
               className={`h-[22px] px-2.5 text-xs rounded-md font-medium border transition-colors ${
                 i === activeMonitorIdx
                   ? "bg-primary text-primary-foreground border-transparent"

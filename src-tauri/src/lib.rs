@@ -70,6 +70,13 @@ pub(crate) fn register_configured_hotkeys(
     Ok(())
 }
 
+fn show_and_focus_editor(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("editor") {
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
+}
+
 fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
     use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
     use tauri::tray::TrayIconBuilder;
@@ -95,16 +102,10 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
                 }
             }
             "open_editor" => {
-                if let Some(w) = app.get_webview_window("editor") {
-                    let _ = w.show();
-                    let _ = w.set_focus();
-                }
+                show_and_focus_editor(app);
             }
             "position" => {
-                if let Some(w) = app.get_webview_window("editor") {
-                    let _ = w.show();
-                    let _ = w.set_focus();
-                }
+                show_and_focus_editor(app);
                 let _ = app.emit_to("editor", "navigate-to-position", ());
             }
             "quit" => app.exit(0),

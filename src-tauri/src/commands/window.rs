@@ -132,8 +132,8 @@ mod tests {
         };
         assert_eq!(info.width, 1920);
         assert_eq!(info.scale_factor, 2.0);
-        // scale_factor can still be used for conversion math when needed.
-        let phys_w = (info.width as f64 * info.scale_factor) as u32;
-        assert_eq!(phys_w, 3840);
+        // logical size = physical / scale_factor
+        let logical_w = (info.width as f64 / info.scale_factor) as u32;
+        assert_eq!(logical_w, 960);
     }
 }
