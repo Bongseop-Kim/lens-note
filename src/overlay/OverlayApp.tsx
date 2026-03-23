@@ -11,7 +11,7 @@ import { initSearch, searchCards } from "../utils/search";
 import { Card } from "../types";
 
 export default function OverlayApp() {
-  const [showSettings, setShowSettings] = useState(false);
+  const [activePanel, setActivePanel] = useState<"settings" | "jump" | "search" | null>(null);
   const { cards, setCurrentIndex, hydrate } = useCardStore();
   const { hydrate: hydratePrefs, prefs } = usePrefsStore();
 
@@ -19,9 +19,7 @@ export default function OverlayApp() {
   const resizeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [jumpInput, setJumpInput] = useState("");
-  const [showJump, setShowJump] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<Card[]>([]);
 
   useEffect(() => {
@@ -34,10 +32,10 @@ export default function OverlayApp() {
 
     const unlistenPromise = listen<string>("hotkey-fired", (event) => {
       const id = event.payload;
-      if (id === "jump") { setShowJump(true); return; }
-      if (id === "search") { setShowSearch(true); return; }
+      if (id === "jump") { setActivePanel("jump"); return; }
+      if (id === "search") { setActivePanel("search"); return; }
       if (id === "toggle") {
-        setShowSettings((value) => !value);
+        setActivePanel((p) => p === "settings" ? null : "settings");
         return;
       }
       const { currentIndex: idx, cards: c } = useCardStore.getState();
@@ -81,12 +79,12 @@ export default function OverlayApp() {
     >
       <div style={{ pointerEvents: "auto" }}>
         <DragHandle dragLocked={prefs.dragLocked} />
-        <NavBar onSettings={() => setShowSettings((v) => !v)} />
+        <NavBar onSettings={() => setActivePanel((p) => p === "settings" ? null : "settings")} />
       </div>
       <CardDisplay />
-      {showSettings && <SettingsPopup onClose={() => setShowSettings(false)} />}
+      {activePanel === "settings" && <SettingsPopup onClose={() => setActivePanel(null)} />}
 
-      {showJump && (
+      {activePanel === "jump" && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-black/50"
           style={{ pointerEvents: "auto" }}
@@ -104,10 +102,10 @@ export default function OverlayApp() {
                   if (!isNaN(n) && n >= 1 && n <= cards.length) {
                     setCurrentIndex(n - 1);
                   }
-                  setShowJump(false);
+                  setActivePanel(null);
                   setJumpInput("");
                 }
-                if (e.key === "Escape") { setShowJump(false); setJumpInput(""); }
+                if (e.key === "Escape") { setActivePanel(null); setJumpInput(""); }
               }}
               placeholder="1"
             />
@@ -115,7 +113,7 @@ export default function OverlayApp() {
         </div>
       )}
 
-      {showSearch && (
+      {activePanel === "search" && (
         <div
           className="absolute inset-0 flex flex-col items-center pt-8 bg-black/60"
           style={{ pointerEvents: "auto" }}
@@ -143,7 +141,7 @@ export default function OverlayApp() {
               }}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
-                  setShowSearch(false);
+                  setActivePanel(null);
                   setSearchQuery("");
                   setSearchResults([]);
                 }
@@ -154,7 +152,7 @@ export default function OverlayApp() {
                 const selectCard = () => {
                   const idx = cards.findIndex((c) => c.id === card.id);
                   if (idx !== -1) setCurrentIndex(idx);
-                  setShowSearch(false);
+                  setActivePanel(null);
                   setSearchQuery("");
                   setSearchResults([]);
                 };

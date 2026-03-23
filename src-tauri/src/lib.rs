@@ -32,6 +32,16 @@ pub(crate) fn register_configured_hotkeys(
     }
 
     let bindings = app.state::<HotkeyBindings>();
+    let mut stored_bindings = match bindings.0.lock() {
+        Ok(guard) => guard,
+        Err(_) => {
+            eprintln!("Failed to lock hotkey bindings map; skipping hotkey registration");
+            return Err(tauri_plugin_global_shortcut::Error::GlobalHotkey(
+                "mutex poisoned; hotkey registration skipped".to_string(),
+            ));
+        }
+    };
+
     app.global_shortcut().unregister_all()?;
 
     let mut next_bindings = HashMap::new();
@@ -56,17 +66,7 @@ pub(crate) fn register_configured_hotkeys(
         }
     }
 
-    if let Ok(mut stored_bindings) = bindings.0.lock() {
-        *stored_bindings = next_bindings;
-    } else {
-        eprintln!("Failed to update hotkey bindings map; reverting OS registrations");
-        if let Err(e) = app.global_shortcut().unregister_all() {
-            eprintln!("Failed to revert hotkey registrations: {e}");
-        }
-        return Err(tauri_plugin_global_shortcut::Error::GlobalHotkey(
-            "mutex poisoned; hotkey registrations reverted".to_string(),
-        ));
-    }
+    *stored_bindings = next_bindings;
 
     Ok(())
 }
@@ -190,12 +190,47 @@ pub fn run() {
 fn restore_overlay_bounds(app: &tauri::App, prefs: &Preferences) {
     if let Some(overlay) = app.get_webview_window("overlay") {
         let clamped = prefs.clone().clamped();
-        overlay
-            .set_position(tauri::PhysicalPosition::new(
-                clamped.overlay_x as i32,
-                clamped.overlay_y as i32,
-            ))
-            .ok();
+
+        let ox = clamped.overlay_x as i64;
+        let oy = clamped.overlay_y as i64;
+        let ow = clamped.overlay_width as i64;
+        let oh = clamped.overlay_height as i64;
+
+        // Determine whether the clamped rect intersects at least one monitor.
+        let intersects_any_monitor = match app.available_monitors() {
+            Ok(monitors) => monitors.into_iter().any(|monitor| {
+                let mx = monitor.position().x as i64;
+                let my = monitor.position().y as i64;
+                let mw = monitor.size().width as i64;
+                let mh = monitor.size().height as i64;
+                ox < mx + mw && ox + ow > mx && oy < my + mh && oy + oh > my
+            }),
+            Err(e) => {
+                eprintln!("Failed to enumerate monitors when restoring overlay bounds: {e}");
+                // Fall through to default position.
+                false
+            }
+        };
+
+        let position = if intersects_any_monitor {
+            tauri::PhysicalPosition::new(ox as i32, oy as i32)
+        } else {
+            eprintln!("Saved overlay position ({ox},{oy}) is off-screen; falling back to primary monitor center");
+            match app.primary_monitor() {
+                Ok(Some(monitor)) => {
+                    let cx = monitor.position().x as i64
+                        + monitor.size().width as i64 / 2
+                        - ow / 2;
+                    let cy = monitor.position().y as i64
+                        + monitor.size().height as i64 / 2
+                        - oh / 2;
+                    tauri::PhysicalPosition::new(cx as i32, cy as i32)
+                }
+                _ => tauri::PhysicalPosition::new(100, 100),
+            }
+        };
+
+        overlay.set_position(position).ok();
         overlay
             .set_size(tauri::PhysicalSize::new(
                 clamped.overlay_width as u32,
