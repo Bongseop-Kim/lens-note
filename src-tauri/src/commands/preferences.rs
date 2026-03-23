@@ -91,11 +91,19 @@ pub fn load_prefs_sync(app: &tauri::AppHandle) -> Preferences {
 
 impl Preferences {
     pub fn clamped(self) -> Self {
+        fn finite_or(value: f64, fallback: f64) -> f64 {
+            if value.is_finite() { value } else { fallback }
+        }
+
+        let d = Self::default();
         Self {
-            opacity: self.opacity.clamp(0.4, 1.0),
-            font_size: self.font_size.clamp(8.0, 72.0),
-            overlay_width: self.overlay_width.clamp(200.0, 2000.0),
-            overlay_height: self.overlay_height.clamp(50.0, 1000.0),
+            opacity: finite_or(self.opacity, d.opacity).clamp(0.4, 1.0),
+            font_size: finite_or(self.font_size, d.font_size).clamp(8.0, 72.0),
+            line_height: finite_or(self.line_height, d.line_height).clamp(1.0, 3.0),
+            overlay_width: finite_or(self.overlay_width, d.overlay_width).clamp(200.0, 2000.0),
+            overlay_height: finite_or(self.overlay_height, d.overlay_height).clamp(50.0, 1000.0),
+            overlay_x: finite_or(self.overlay_x, d.overlay_x).clamp(-10_000.0, 10_000.0),
+            overlay_y: finite_or(self.overlay_y, d.overlay_y).clamp(-10_000.0, 10_000.0),
             ..self
         }
     }

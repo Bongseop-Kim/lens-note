@@ -179,16 +179,17 @@ pub fn run() {
 
 fn restore_overlay_bounds(app: &tauri::App, prefs: &Preferences) {
     if let Some(overlay) = app.get_webview_window("overlay") {
+        let clamped = prefs.clone().clamped();
         overlay
             .set_position(tauri::PhysicalPosition::new(
-                prefs.overlay_x as i32,
-                prefs.overlay_y as i32,
+                clamped.overlay_x as i32,
+                clamped.overlay_y as i32,
             ))
             .ok();
         overlay
             .set_size(tauri::PhysicalSize::new(
-                prefs.overlay_width as u32,
-                prefs.overlay_height as u32,
+                clamped.overlay_width as u32,
+                clamped.overlay_height as u32,
             ))
             .ok();
     }

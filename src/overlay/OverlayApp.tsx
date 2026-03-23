@@ -127,8 +127,19 @@ export default function OverlayApp() {
               value={searchQuery}
               placeholder="카드 검색..."
               onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setSearchResults(searchCards(e.target.value));
+                const nextQuery = e.target.value;
+                setSearchQuery(nextQuery);
+
+                if (!nextQuery.trim() || cards.length === 0) {
+                  setSearchResults([]);
+                  return;
+                }
+
+                try {
+                  setSearchResults(searchCards(nextQuery));
+                } catch {
+                  setSearchResults([]);
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
