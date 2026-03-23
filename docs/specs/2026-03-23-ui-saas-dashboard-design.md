@@ -104,7 +104,7 @@ Dark mode via `darkMode: 'class'` (already configured).
 
 1. **Resize** — mousedown on any of 4 corner handles (8×8px, `bg-amber-400`, positioned at each corner of the selection rect) → drag moves that corner, opposite corner is anchor.
 2. **Move** — mousedown inside the selection rect (but not on a handle) → drag translates the entire rect, size preserved.
-3. **Create** — mousedown on empty canvas (no existing selection or outside selection) → drag creates new selection as before.
+3. **Create** — mousedown on empty canvas (no existing selection or outside selection) → origin anchors at mousedown point, opposite corner tracks mouse until mouseup; final rect is applied as the new selection.
 
 **Hit-test logic** (mousedown):
 ```
