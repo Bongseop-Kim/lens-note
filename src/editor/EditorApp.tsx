@@ -3,12 +3,14 @@ import { checkAccessibilityPermission, requestAccessibilityPermission } from "ta
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useCardStore } from "../store/useCardStore";
 import { usePrefsStore } from "../store/usePrefsStore";
 import { Card } from "../types";
 import CardList from "./CardList";
 import CardDetail from "./CardDetail";
 import Preferences from "./Preferences";
+import ZonePicker from "./ZonePicker";
 
 const isMacOS = /mac/i.test(navigator.userAgent);
 
@@ -32,10 +34,14 @@ function isCard(value: unknown): value is Card {
     && typeof candidate.updatedAt === "string";
 }
 
+function tabClass(active: boolean) {
+  return `px-4 py-2 text-sm font-medium ${active ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`;
+}
+
 export default function EditorApp() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [needsAccessibility, setNeedsAccessibility] = useState(false);
-  const [tab, setTab] = useState<"cards" | "preferences">("cards");
+  const [tab, setTab] = useState<"cards" | "preferences" | "position">("cards");
 
   useEffect(() => {
     if (!isMacOS) {
@@ -70,6 +76,14 @@ export default function EditorApp() {
     };
 
     void hydrate();
+
+    const unlistenNav = listen("navigate-to-position", () => {
+      setTab("position");
+    });
+
+    return () => {
+      unlistenNav.then((fn) => fn()).catch(console.error);
+    };
   }, []);
 
   async function exportCards() {
@@ -114,9 +128,6 @@ export default function EditorApp() {
             type="button"
             className="underline font-medium"
             onClick={async () => {
-              if (!isMacOS) {
-                return;
-              }
               try {
                 await requestAccessibilityPermission();
                 const granted = await checkAccessibilityPermission();
@@ -134,21 +145,29 @@ export default function EditorApp() {
           </button>
         </div>
       )}
-      {/* 탭 바 */}
-      <div className="fixed top-0 left-0 right-0 flex border-b bg-white z-10">
+      <div className="fixed top-0 left-0 right-0 flex border-b bg-white z-10" data-tauri-drag-region>
+        {/* macOS traffic light spacer (~80px) */}
+        <div className="w-20 shrink-0" data-tauri-drag-region />
         <button
           type="button"
-          className={`px-4 py-2 text-sm font-medium ${tab === "cards" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+          className={tabClass(tab === "cards")}
           onClick={() => setTab("cards")}
         >
           카드 편집
         </button>
         <button
           type="button"
-          className={`px-4 py-2 text-sm font-medium ${tab === "preferences" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+          className={tabClass(tab === "preferences")}
           onClick={() => setTab("preferences")}
         >
           환경설정
+        </button>
+        <button
+          type="button"
+          className={tabClass(tab === "position")}
+          onClick={() => setTab("position")}
+        >
+          위치
         </button>
         <div className="ml-auto flex items-center gap-2 px-3">
           <button
@@ -186,7 +205,7 @@ export default function EditorApp() {
         </div>
       ) : (
         <div className="overflow-y-auto">
-          <Preferences />
+          {tab === "position" ? <ZonePicker /> : <Preferences />}
         </div>
       )}
     </div>

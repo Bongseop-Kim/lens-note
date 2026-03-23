@@ -1,22 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCardStore } from "../store/useCardStore";
 import { usePrefsStore } from "../store/usePrefsStore";
-import DragHandle from "./DragHandle";
 import CardDisplay from "./CardDisplay";
-import NavBar from "./NavBar";
-import SettingsPopup from "./SettingsPopup";
 import { initSearch, searchCards } from "../utils/search";
+import { SEARCH_RESULT_PREVIEW_LENGTH } from "../utils/constants";
 import { Card } from "../types";
 
 export default function OverlayApp() {
-  const [activePanel, setActivePanel] = useState<"settings" | "jump" | "search" | null>(null);
+  const [activePanel, setActivePanel] = useState<"jump" | "search" | null>(null);
   const { cards, setCurrentIndex, hydrate } = useCardStore();
   const { hydrate: hydratePrefs, prefs } = usePrefsStore();
-
-  const moveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resizeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [jumpInput, setJumpInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,10 +28,6 @@ export default function OverlayApp() {
       const id = event.payload;
       if (id === "jump") { setActivePanel("jump"); return; }
       if (id === "search") { setActivePanel("search"); return; }
-      if (id === "toggle") {
-        setActivePanel((p) => p === "settings" ? null : "settings");
-        return;
-      }
       const { currentIndex: idx, cards: c } = useCardStore.getState();
       if (id === "next" && idx < c.length - 1) {
         useCardStore.setState({ currentIndex: idx + 1 });
@@ -46,28 +36,18 @@ export default function OverlayApp() {
       }
     });
 
-    const win = getCurrentWindow();
-    const unlistenMoved = win.onMoved(({ payload: pos }) => {
-      if (moveDebounceRef.current) clearTimeout(moveDebounceRef.current);
-      moveDebounceRef.current = setTimeout(() => {
-        usePrefsStore.getState().updatePrefs({ overlayX: pos.x, overlayY: pos.y }).catch(console.error);
-      }, 500);
-    });
-    const unlistenResized = win.onResized(({ payload: size }) => {
-      if (resizeDebounceRef.current) clearTimeout(resizeDebounceRef.current);
-      resizeDebounceRef.current = setTimeout(() => {
-        usePrefsStore.getState().updatePrefs({ overlayWidth: size.width, overlayHeight: size.height }).catch(console.error);
-      }, 500);
-    });
-
     return () => {
-      if (moveDebounceRef.current) clearTimeout(moveDebounceRef.current);
-      if (resizeDebounceRef.current) clearTimeout(resizeDebounceRef.current);
       unlistenPromise.then((fn) => fn()).catch(console.error);
-      unlistenMoved.then((fn) => fn()).catch(console.error);
-      unlistenResized.then((fn) => fn()).catch(console.error);
     };
   }, []);
+
+  function selectCard(cardId: string) {
+    const idx = cards.findIndex((c) => c.id === cardId);
+    if (idx !== -1) setCurrentIndex(idx);
+    setActivePanel(null);
+    setSearchQuery("");
+    setSearchResults([]);
+  }
 
   return (
     <div
@@ -77,12 +57,7 @@ export default function OverlayApp() {
         pointerEvents: "none",
       }}
     >
-      <div style={{ pointerEvents: "auto" }}>
-        <DragHandle dragLocked={prefs.dragLocked} />
-        <NavBar onSettings={() => setActivePanel((p) => p === "settings" ? null : "settings")} />
-      </div>
       <CardDisplay />
-      {activePanel === "settings" && <SettingsPopup onClose={() => setActivePanel(null)} />}
 
       {activePanel === "jump" && (
         <div
@@ -127,12 +102,10 @@ export default function OverlayApp() {
               onChange={(e) => {
                 const nextQuery = e.target.value;
                 setSearchQuery(nextQuery);
-
                 if (!nextQuery.trim() || cards.length === 0) {
                   setSearchResults([]);
                   return;
                 }
-
                 try {
                   setSearchResults(searchCards(nextQuery));
                 } catch {
@@ -148,28 +121,19 @@ export default function OverlayApp() {
               }}
             />
             <ul className="max-h-40 overflow-y-auto flex flex-col gap-1">
-              {searchResults.map((card) => {
-                const selectCard = () => {
-                  const idx = cards.findIndex((c) => c.id === card.id);
-                  if (idx !== -1) setCurrentIndex(idx);
-                  setActivePanel(null);
-                  setSearchQuery("");
-                  setSearchResults([]);
-                };
-                return (
-                <li
-                  key={card.id}
-                  role="button"
-                  tabIndex={0}
-                  className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 cursor-pointer text-white text-sm"
-                  onClick={selectCard}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectCard(); } }}
-                >
-                  <span className="font-medium">{card.title}</span>
-                  <span className="text-gray-400 ml-2 text-xs truncate">{card.body.slice(0, 40)}</span>
-                </li>
-              );
-              })}
+              {searchResults.map((card) => (
+                  <li
+                    key={card.id}
+                    role="button"
+                    tabIndex={0}
+                    className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 cursor-pointer text-white text-sm"
+                    onClick={() => selectCard(card.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectCard(card.id); } }}
+                  >
+                    <span className="font-medium">{card.title}</span>
+                    <span className="text-gray-400 ml-2 text-xs truncate">{card.body.slice(0, SEARCH_RESULT_PREVIEW_LENGTH)}</span>
+                  </li>
+                ))}
               {searchQuery && searchResults.length === 0 && (
                 <li className="text-gray-500 text-sm px-2">결과 없음</li>
               )}

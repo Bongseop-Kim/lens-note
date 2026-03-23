@@ -43,7 +43,6 @@ pub struct Preferences {
     pub hotkeys: HotkeyConfig,
     pub theme: Theme,
     pub highlight_current_paragraph: bool,
-    pub drag_locked: bool,
 }
 
 impl Default for Preferences {
@@ -59,7 +58,6 @@ impl Default for Preferences {
             hotkeys: HotkeyConfig::default(),
             theme: Theme::Dark,
             highlight_current_paragraph: true,
-            drag_locked: true,
         }
     }
 }

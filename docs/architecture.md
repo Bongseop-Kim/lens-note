@@ -17,9 +17,10 @@
 │  (React)               │  │  (React)           │
 │  ─────────────────────  │  │  ──────────────── │
 │  • Displays 1 card     │  │  • Card list CRUD  │
-│  • Prev/Next buttons   │  │  • Font/size prefs │
-│  • Card index badge    │  │  • Import/Export   │
-│  • Lock/unlock drag    │  │  • Hotkey config   │
+│  • Text-only surface   │  │  • Font/size prefs │
+│  • Jump/search modals  │  │  • Import/Export   │
+│  • pointer-events:none │  │  • Hotkey config   │
+│                        │  │  • Zone Picker     │
 └────────────────────────┘  └────────────────────┘
 ```
 
@@ -38,7 +39,7 @@
   "transparent": true,
   "alwaysOnTop": true,
   "skipTaskbar": true,
-  "resizable": true,
+  "resizable": false,
   "focus": false,
   "shadow": false,
   "visibleOnAllWorkspaces": true
@@ -103,7 +104,7 @@ interface Preferences {
   hotkeys: HotkeyConfig;
   theme: "dark" | "light";
   highlightCurrentParagraph: boolean;
-  dragLocked: boolean;      // default: true — 인터뷰 중 실수 이동 방지, false일 때만 drag handle 활성화 (→ ADR-001)
+  // dragLocked removed — ADR-003 superseded, drag conflict eliminated by removing DragHandle entirely
 }
 
 interface HotkeyConfig {
@@ -186,21 +187,24 @@ interview-prompter/
 │   │   ├── main.tsx             # ReactDOM.createRoot → <OverlayApp />
 │   │   ├── OverlayApp.tsx       # Root for overlay window
 │   │   ├── CardDisplay.tsx      # Main card renderer
-│   │   ├── NavBar.tsx           # Prev/Next + index
-│   │   └── DragHandle.tsx
+│   │   ├── ~~NavBar.tsx~~           # (deleted — overlay UX refactor)
+│   │   ├── ~~DragHandle.tsx~~       # (deleted — overlay UX refactor)
+│   │   └── ~~SettingsPopup.tsx~~    # (deleted — overlay UX refactor)
 │   ├── editor/
 │   │   ├── main.tsx             # ReactDOM.createRoot → <EditorApp />
 │   │   ├── EditorApp.tsx        # Root for editor window
 │   │   ├── CardList.tsx
 │   │   ├── CardDetail.tsx
-│   │   └── Preferences.tsx
+│   │   ├── Preferences.tsx
+│   │   └── ZonePicker.tsx       # Zone picker for overlay placement
 │   ├── store/
 │   │   ├── useCardStore.ts      # Zustand: cards + currentIndex
 │   │   └── usePrefsStore.ts     # Zustand: preferences
 │   ├── types.ts
 │   └── utils/
 │       ├── search.ts            # fuse.js wrapper
-│       └── hotkeys.ts           # hotkey string helpers
+│       ├── hotkeys.ts           # hotkey string helpers
+│       └── zonePickerMath.ts    # Zone coordinate math utilities
 ├── overlay.html                 # overlay 창 진입점 → src/overlay/main.tsx
 ├── editor.html                  # editor 창 진입점 → src/editor/main.tsx
 ├── vite.config.ts

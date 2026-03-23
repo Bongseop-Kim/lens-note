@@ -69,7 +69,7 @@ export default function CardDisplay() {
     >
       {paragraphs.map((p, i) => (
         <p
-          key={i}
+          key={`para-${i}`}
           ref={(el) => { paragraphRefs.current[i] = el; }}
           className={`mb-3 px-1 rounded transition-colors ${
             prefs.highlightCurrentParagraph && i === activeIndex

@@ -27,7 +27,6 @@ export interface Preferences {
   hotkeys: HotkeyConfig;
   theme: "dark" | "light";
   highlightCurrentParagraph: boolean;
-  dragLocked: boolean;
 }
 
 export interface AppState {
@@ -53,5 +52,4 @@ export const DEFAULT_PREFS: Preferences = {
   },
   theme: "dark",
   highlightCurrentParagraph: true,
-  dragLocked: true,
 };

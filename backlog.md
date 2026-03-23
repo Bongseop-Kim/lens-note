@@ -41,6 +41,10 @@
 - [ ] 오버레이 위치/크기 자동 저장
 - [ ] 앱 아이콘 (.icns)
 
+## Known Issues / Future Work
+- [ ] **ADR-001 compliance check**: Overlay jump/search modals use `pointerEvents: "auto"` + `autoFocus` inside an always-on-top window. Verify on macOS Sonoma 14+ that this does not steal keyboard focus from Zoom/Meet during an interview session.
+- [ ] **ZonePicker initial selection**: On opening the "위치" tab, the mini-map shows no selection even though the overlay is already positioned. Consider initializing `selection` from saved prefs (overlayX/Y/W/H back-calculated to nearest cell rect).
+
 ## v2 Roadmap
 - [ ] 화면 공유 감지 → 오버레이 자동 숨김 (ADR-006)
 - [ ] 카드 본문 Markdown 지원
