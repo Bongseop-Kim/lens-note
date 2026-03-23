@@ -2,6 +2,12 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Card } from "../types";
+import { clientId } from "./clientId";
+
+interface CardsUpdatedPayload {
+  cards: Card[];
+  clientId?: string | null;
+}
 
 interface CardStore {
   cards: Card[];
@@ -25,14 +31,20 @@ export const useCardStore = create<CardStore>((set, get) => ({
 
   hydrate: async () => {
     set({ isLoading: true });
-    const cards = await invoke<Card[]>("read_cards");
-    set({ cards, isLoading: false });
+    try {
+      const cards = await invoke<Card[]>("read_cards");
+      set({ cards, isLoading: false });
+    } catch (error) {
+      console.error("Failed to hydrate cards", error);
+      set({ cards: [], isLoading: false });
+    }
   },
 
   setCards: (cards) => set({ cards }),
   setCurrentIndex: (index) => set({ currentIndex: index }),
 
   addCard: async (partial) => {
+    const previous = get().cards;
     const now = new Date().toISOString();
     const newCard: Card = {
       ...partial,
@@ -41,32 +53,68 @@ export const useCardStore = create<CardStore>((set, get) => ({
       createdAt: now,
       updatedAt: now,
     };
-    const updated = [...get().cards, newCard];
+    const updated = [...previous, newCard];
     set({ cards: updated });
-    await invoke("write_cards", { cards: updated });
+    try {
+      await invoke("write_cards", { cards: updated, clientId });
+    } catch (error) {
+      set({ cards: previous });
+      throw error;
+    }
   },
 
   updateCard: async (id, patch) => {
-    const updated = get().cards.map((c) =>
+    const previous = get().cards;
+    const updated = previous.map((c) =>
       c.id === id ? { ...c, ...patch, updatedAt: new Date().toISOString() } : c,
     );
     set({ cards: updated });
-    await invoke("write_cards", { cards: updated });
+    try {
+      await invoke("write_cards", { cards: updated, clientId });
+    } catch (error) {
+      set({ cards: previous });
+      throw error;
+    }
   },
 
   deleteCard: async (id) => {
-    const updated = get().cards.filter((c) => c.id !== id);
+    const previous = get().cards;
+    const updated = previous.filter((c) => c.id !== id);
     set({ cards: updated });
-    await invoke("write_cards", { cards: updated });
+    try {
+      await invoke("write_cards", { cards: updated, clientId });
+    } catch (error) {
+      set({ cards: previous });
+      throw error;
+    }
   },
 
   reorderCards: async (cards) => {
+    const previous = get().cards;
     set({ cards });
-    await invoke("write_cards", { cards });
+    try {
+      await invoke("write_cards", { cards, clientId });
+    } catch (error) {
+      set({ cards: previous });
+      throw error;
+    }
   },
 }));
 
 // ADR-004: Rust 브로드캐스트 수신 → 스토어 업데이트
-listen<Card[]>("cards-updated", (event) => {
-  useCardStore.setState({ cards: event.payload });
+const cardsUpdatedListener = listen<CardsUpdatedPayload>("cards-updated", (event) => {
+  if (event.payload.clientId === clientId) {
+    return;
+  }
+  useCardStore.setState({ cards: event.payload.cards });
 }).catch(console.error);
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    void cardsUpdatedListener.then((unlisten) => {
+      if (typeof unlisten === "function") {
+        unlisten();
+      }
+    });
+  });
+}

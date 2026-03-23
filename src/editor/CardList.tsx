@@ -57,6 +57,7 @@ export default function CardList({
     if (!over || active.id === over.id) return;
     const oldIndex = cards.findIndex((c) => c.id === active.id);
     const newIndex = cards.findIndex((c) => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(cards, oldIndex, newIndex).map((c, i) => ({
       ...c,
       order: i,

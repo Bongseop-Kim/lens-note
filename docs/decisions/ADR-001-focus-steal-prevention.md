@@ -43,15 +43,13 @@
 
 ### canBecomeKeyWindow 차단
 
-ADR-002의 `set_overlay_window_behavior()` 함수 내에 추가:
-
-```rust
-// 창이 key window가 되는 것을 막음 → drag handle 클릭해도 Zoom 포커스 유지
-use objc2::msg_send;
-let _: () = unsafe { msg_send![ns_window, setCanBecomeKeyWindow: false] };
-```
-
-> `objc2-app-kit 0.2`에서 `setCanBecomeKeyWindow`가 직접 노출되지 않으므로 `msg_send!` 매크로로 처리.
+> ⚠️ **검증 결과 (2026-03-23)**: `msg_send![ns_window, setCanBecomeKeyWindow: false]`는 런타임 패닉을 유발함.
+> `canBecomeKeyWindow`는 setter가 없는 override-only 메서드이며, TaoWindow(`NSKVONotifying_TaoWindow`)에
+> `setCanBecomeKeyWindow:` selector가 존재하지 않음.
+>
+> **현재 상태**: `tauri.conf.json`의 `focusable: false`를 제거하고 (drag 복원),
+> `ignoresCycle` + `pointer-events: none`으로 포커스 비탈취를 방지함.
+> 추후 방법이 필요하면 `objc2::ClassBuilder`로 TaoWindow 서브클래스를 런타임에 등록하는 방식 검토.
 
 ### 드래그 잠금 (Preferences)
 
