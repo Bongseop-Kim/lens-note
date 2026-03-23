@@ -94,24 +94,24 @@ pub struct MonitorInfo {
 }
 
 #[tauri::command]
-pub fn get_monitors(app: tauri::AppHandle) -> Vec<MonitorInfo> {
-    app.available_monitors()
-        .unwrap_or_default()
+pub fn get_monitors(app: tauri::AppHandle) -> Result<Vec<MonitorInfo>, String> {
+    Ok(app
+        .available_monitors()
+        .map_err(|e| format!("Failed to enumerate monitors: {e}"))?
         .into_iter()
         .map(|m| {
-            let sf = m.scale_factor();
             let size = m.size();
             let pos = m.position();
             MonitorInfo {
                 name: m.name().map_or("Monitor", |v| v).to_string(),
-                width: (size.width as f64 / sf) as u32,
-                height: (size.height as f64 / sf) as u32,
-                x: (pos.x as f64 / sf) as i32,
-                y: (pos.y as f64 / sf) as i32,
-                scale_factor: sf,
+                width: size.width,
+                height: size.height,
+                x: pos.x as i32,
+                y: pos.y as i32,
+                scale_factor: m.scale_factor(),
             }
         })
-        .collect()
+        .collect())
 }
 
 #[cfg(test)]
@@ -121,6 +121,7 @@ mod tests {
     #[test]
     fn monitor_info_logical_size() {
         // Direct struct construction — verifies field layout and serde derive compile
+        // width/height/x/y are physical pixels; scale_factor is exported separately.
         let info = MonitorInfo {
             name: "Test".to_string(),
             width: 1920,
@@ -131,7 +132,7 @@ mod tests {
         };
         assert_eq!(info.width, 1920);
         assert_eq!(info.scale_factor, 2.0);
-        // physical equivalent would be 3840×2160 at scale 2.0
+        // scale_factor can still be used for conversion math when needed.
         let phys_w = (info.width as f64 * info.scale_factor) as u32;
         assert_eq!(phys_w, 3840);
     }

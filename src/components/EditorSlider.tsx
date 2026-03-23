@@ -18,7 +18,7 @@ export default function EditorSlider({
   className,
 }: EditorSliderProps) {
   return (
-    <div className={className ?? "flex flex-col gap-1.5"}>
+    <label className={className ?? "flex flex-col gap-1.5"}>
       <div className="flex justify-between text-sm">
         <span className="text-foreground">{label}</span>
         <span className="text-muted-foreground font-mono text-xs tabular-nums">{displayValue}</span>
@@ -31,6 +31,6 @@ export default function EditorSlider({
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full accent-foreground cursor-pointer"
       />
-    </div>
+    </label>
   );
 }

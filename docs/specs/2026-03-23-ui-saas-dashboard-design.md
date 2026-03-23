@@ -70,7 +70,7 @@ Dark mode via `darkMode: 'class'` (already configured).
 
 - Container: `w-72 border-r border-border overflow-y-auto p-2 bg-muted/30`
 - Card (default): `flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-card hover:bg-accent cursor-pointer`
-- Card (selected): add `bg-accent shadow-[inset_2px_0_0] shadow-foreground`
+- Card (selected): add `bg-accent border-l-[3px] border-l-foreground`
 - Drag handle: `text-muted-foreground/40 hover:text-muted-foreground`
 - Card title: `text-sm font-medium text-foreground truncate`
 - Card preview: `text-xs text-muted-foreground truncate`
@@ -107,7 +107,7 @@ Dark mode via `darkMode: 'class'` (already configured).
 3. **Create** — mousedown on empty canvas (no existing selection or outside selection) → origin anchors at mousedown point, opposite corner tracks mouse until mouseup; final rect is applied as the new selection.
 
 **Hit-test logic** (mousedown):
-```
+```text
 if point is within 10px of any corner → resize mode (store which corner)
 else if point is inside selection rect → move mode (store drag offset)
 else → create mode

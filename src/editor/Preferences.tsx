@@ -97,7 +97,7 @@ export default function Preferences() {
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">단축키</span>
           <div className="flex-1 h-px bg-border" />
         </div>
-        {(["next", "prev", "jump", "search", "toggle"] as const).map((key) => (
+        {(["next", "prev", "jump", "search"] as const).map((key) => (
           <div key={key} className="flex flex-col gap-1">
             <label className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{HOTKEY_LABELS[key]}</span>

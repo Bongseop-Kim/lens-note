@@ -11,12 +11,11 @@ use crate::commands::preferences::{HotkeyConfig, Preferences};
 #[derive(Default)]
 struct HotkeyBindings(Mutex<HashMap<u32, String>>);
 
-const HOTKEY_ACTIONS: [(&str, fn(&HotkeyConfig) -> &str); 5] = [
+const HOTKEY_ACTIONS: [(&str, fn(&HotkeyConfig) -> &str); 4] = [
     ("next", |config| config.next.as_str()),
     ("prev", |config| config.prev.as_str()),
     ("jump", |config| config.jump.as_str()),
     ("search", |config| config.search.as_str()),
-    ("toggle", |config| config.toggle.as_str()),
 ];
 
 pub(crate) fn register_configured_hotkeys(

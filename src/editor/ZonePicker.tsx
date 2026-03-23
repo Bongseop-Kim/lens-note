@@ -13,11 +13,11 @@ import { usePrefsStore } from "../store/usePrefsStore";
 
 const HANDLE_HIT = 10; // px radius around corner that triggers resize
 
+type Corner = "tl" | "tr" | "bl" | "br";
+
 const CORNER_CURSORS: Record<Corner, string> = {
   tl: "nw-resize", tr: "ne-resize", bl: "sw-resize", br: "se-resize",
 };
-
-type Corner = "tl" | "tr" | "bl" | "br";
 
 type DragState =
   | { type: "create"; ox: number; oy: number }
@@ -185,7 +185,7 @@ export default function ZonePicker() {
         <div className="flex gap-1">
           {monitors.map((m, i) => (
             <button
-              key={i}
+              key={m.name || String(i)}
               type="button"
               onClick={() => { setActiveMonitorIdx(i); setSelection(null); setDrag(null); }}
               className={`h-[22px] px-2.5 text-xs rounded-md font-medium border transition-colors ${

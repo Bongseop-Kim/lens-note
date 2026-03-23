@@ -7,7 +7,6 @@ export const HOTKEY_LABELS: Record<keyof HotkeyConfig, string> = {
   prev: "이전 카드",
   jump: "번호로 이동",
   search: "검색",
-  toggle: "오버레이 토글",
 };
 
 export function validateHotkey(value: string): string | null {

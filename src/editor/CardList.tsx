@@ -84,7 +84,7 @@ export default function CardList({
       <button
         type="button"
         className="mt-1 w-full h-8 text-xs text-muted-foreground border border-dashed border-border rounded-md hover:bg-accent hover:text-foreground transition-colors"
-        onClick={() => addCard({ title: "", body: "", tags: [] })}
+        onClick={() => addCard({ title: "", body: "" })}
       >
         + 새 카드
       </button>

@@ -15,7 +15,6 @@ pub struct HotkeyConfig {
     pub prev: String,
     pub jump: String,
     pub search: String,
-    pub toggle: String,
 }
 
 impl Default for HotkeyConfig {
@@ -25,7 +24,6 @@ impl Default for HotkeyConfig {
             prev: "ArrowLeft".into(),
             jump: "Ctrl+G".into(),
             search: "Ctrl+F".into(),
-            toggle: "Ctrl+Shift+P".into(),
         }
     }
 }

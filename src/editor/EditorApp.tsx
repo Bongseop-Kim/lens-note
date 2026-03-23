@@ -30,7 +30,6 @@ function isCard(value: unknown): value is Card {
   return typeof candidate.id === "string"
     && typeof candidate.title === "string"
     && typeof candidate.body === "string"
-    && Array.isArray(candidate.tags)
     && typeof candidate.order === "number"
     && typeof candidate.createdAt === "string"
     && typeof candidate.updatedAt === "string";

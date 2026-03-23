@@ -733,6 +733,11 @@ function anchorForCorner(corner: Corner, r: DisplayRect): { anchorX: number; anc
   };
 }
 
+// Defined at module level (outside ZonePicker component) to avoid recreation on each render
+const CORNER_CURSORS: Record<Corner, string> = {
+  tl: "nw-resize", tr: "ne-resize", bl: "sw-resize", br: "se-resize",
+};
+
 export default function ZonePicker() {
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [activeMonitorIdx, setActiveMonitorIdx] = useState(0);
@@ -846,10 +851,6 @@ export default function ZonePicker() {
     }
     setDrag(null);
   }
-
-  const CORNER_CURSORS: Record<Corner, string> = {
-    tl: "nw-resize", tr: "ne-resize", bl: "sw-resize", br: "se-resize",
-  };
 
   function mapCursor(): string {
     if (drag) {
