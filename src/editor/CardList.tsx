@@ -28,7 +28,7 @@ function SortableCard({
       ref={setNodeRef}
       style={style}
       className={`flex items-center gap-2 p-3 rounded cursor-pointer border ${
-        isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:bg-gray-50"
+        isSelected ? "border-gray-300 bg-gray-50 shadow-[inset_2px_0_0_#111827] dark:border-gray-600 dark:bg-gray-800 dark:shadow-[inset_2px_0_0_#e5e7eb]" : "border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
       }`}
       onClick={onSelect}
     >
@@ -37,7 +37,7 @@ function SortableCard({
       </span>
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate">{card.title || "(제목 없음)"}</p>
-        <p className="text-sm text-gray-500 truncate">{card.body.slice(0, 50)}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{card.body.slice(0, 50)}</p>
       </div>
     </div>
   );
@@ -80,7 +80,8 @@ export default function CardList({
         </SortableContext>
       </DndContext>
       <button
-        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        type="button"
+        className="mt-1 w-full px-4 py-2 text-sm font-medium bg-gray-50 text-gray-600 border border-gray-200 rounded hover:bg-gray-100 transition-colors dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
         onClick={() => addCard({ title: "", body: "", tags: [] })}
       >
         + 새 카드

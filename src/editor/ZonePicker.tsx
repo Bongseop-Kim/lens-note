@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Camera, ArrowUpLeft, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   MonitorInfo,
@@ -116,7 +117,7 @@ export default function ZonePicker() {
   return (
     <div className="p-4 flex gap-6 flex-wrap">
       <div>
-        <p className="text-xs text-gray-500 mb-2">{`드래그해서 오버레이 영역을 선택하세요 (셀 ${CELL_SIZE_LOGICAL}×${CELL_SIZE_LOGICAL}px)`}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{`드래그해서 오버레이 영역을 선택하세요 (셀 ${CELL_SIZE_LOGICAL}×${CELL_SIZE_LOGICAL}px)`}</p>
 
         {monitors.length > 1 && (
           <div className="flex gap-1 mb-2">
@@ -125,7 +126,7 @@ export default function ZonePicker() {
                 key={i}
                 type="button"
                 onClick={() => { setActiveMonitorIdx(i); setSelection(null); setDragging(null); }}
-                className={`px-2 py-1 text-xs rounded ${i === activeMonitorIdx ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                className={`px-2 py-1 text-xs rounded ${i === activeMonitorIdx ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"}`}
               >
                 {m.name || `모니터 ${i + 1}`}
               </button>
@@ -149,7 +150,7 @@ export default function ZonePicker() {
               backgroundSize: `${cellDisplaySize}px ${cellDisplaySize}px`,
             }}
           />
-          <div className="absolute top-1 pointer-events-none text-xs text-gray-500" style={{ left: MINIMAP_DISPLAY_WIDTH / 2 - 6 }}>📷</div>
+          <div className="absolute top-1 pointer-events-none text-gray-500 flex justify-center" style={{ left: MINIMAP_DISPLAY_WIDTH / 2 - 6 }}><Camera size={12} /></div>
           {selStyle && (
             <div
               className="absolute border-2 border-amber-400 bg-amber-400/20 pointer-events-none"
@@ -161,7 +162,7 @@ export default function ZonePicker() {
           </div>
         </div>
 
-        <div className="mt-2 text-xs text-gray-500">
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           {bounds
             ? `X: ${Math.round(bounds.x / monitor.scaleFactor)}  Y: ${Math.round(bounds.y / monitor.scaleFactor)}  W: ${Math.round(bounds.width / monitor.scaleFactor)}  H: ${Math.round(bounds.height / monitor.scaleFactor)}  (논리px)`
             : `${cols}×${rows} 셀`}
@@ -169,20 +170,21 @@ export default function ZonePicker() {
       </div>
 
       <div>
-        <p className="text-xs text-gray-500 mb-2">프리셋</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">프리셋</p>
         <div className="flex flex-col gap-2">
           {[
-            { label: "📷 카메라 바로 아래", fn: presetCameraBelow },
-            { label: "↖ 좌상단 띠", fn: presetTopLeft },
-            { label: "↗ 우상단 띠", fn: presetTopRight },
-            { label: "↙ 하단 전체", fn: presetBottomFull },
-          ].map(({ label, fn }) => (
+            { icon: <Camera size={14} />, label: "카메라 바로 아래", fn: presetCameraBelow },
+            { icon: <ArrowUpLeft size={14} />, label: "좌상단 띠", fn: presetTopLeft },
+            { icon: <ArrowUpRight size={14} />, label: "우상단 띠", fn: presetTopRight },
+            { icon: <ArrowDownLeft size={14} />, label: "하단 전체", fn: presetBottomFull },
+          ].map(({ icon, label, fn }) => (
             <button
               key={label}
               type="button"
-              className="px-3 py-1.5 text-sm text-left bg-gray-100 hover:bg-gray-200 rounded"
+              className="px-3 py-1.5 text-sm flex items-center gap-2 bg-gray-100 hover:bg-gray-200 rounded transition-colors dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300"
               onClick={() => applyBounds(fn(monitor))}
             >
+              {icon}
               {label}
             </button>
           ))}

@@ -70,7 +70,7 @@ export default function CardDetail({
     <div className="flex flex-col gap-4 p-4 h-full">
       <div className="flex items-center justify-between">
         <input
-          className="flex-1 text-xl font-bold border-b-2 border-gray-300 focus:border-blue-500 outline-none pb-1"
+          className="flex-1 text-xl font-bold bg-transparent border-b-2 border-gray-200 focus:border-blue-500 outline-none pb-1 transition-colors dark:border-gray-600 dark:text-gray-100 dark:focus:border-blue-400"
           value={title}
           onChange={(e) => { setTitle(e.target.value); setIsDirty(true); }}
           onBlur={handleSave}
@@ -78,22 +78,22 @@ export default function CardDetail({
         />
         <button
           type="button"
-          className="ml-4 text-red-400 hover:text-red-600"
+          className="ml-3 p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors dark:text-gray-500 dark:hover:text-red-400 dark:hover:bg-red-900/30"
           aria-label="Delete card"
           title="카드 삭제"
           onClick={() => { void handleDelete(); }}
         >
-          <Trash2 size={18} />
+          <Trash2 size={16} />
         </button>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
         {card.tags.map((tag) => (
-          <span key={tag} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+          <span key={tag} className="flex items-center gap-1 bg-gray-100 text-gray-700 border border-gray-200 px-2 py-0.5 rounded text-xs dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600">
             {tag}
             <button
               type="button"
               onClick={() => removeTag(tag)}
-              className="hover:text-red-500"
+              className="ml-0.5 w-4 h-4 flex items-center justify-center rounded hover:text-red-500 hover:bg-red-100 transition-colors"
               aria-label={`Remove tag ${tag}`}
             >
               ×
@@ -101,7 +101,7 @@ export default function CardDetail({
           </span>
         ))}
         <input
-          className="border rounded px-2 py-0.5 text-xs w-24"
+          className="border border-gray-200 rounded px-2 py-0.5 text-xs w-24 focus:outline-none focus:border-gray-400 dark:border-gray-600 dark:bg-transparent dark:text-gray-100 dark:focus:border-gray-500"
           value={tagInput}
           onChange={(e) => setTagInput(e.target.value)}
           onKeyDown={(e) => {
@@ -115,7 +115,7 @@ export default function CardDetail({
         />
       </div>
       <textarea
-        className="flex-1 p-3 border rounded resize-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+        className="flex-1 p-3 border border-gray-200 rounded-md resize-none text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-gray-700 dark:focus:border-gray-500"
         value={body}
         onChange={(e) => { setBody(e.target.value); setIsDirty(true); }}
         onBlur={handleSave}

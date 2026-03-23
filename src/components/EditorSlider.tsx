@@ -18,15 +18,19 @@ export default function EditorSlider({
   className,
 }: EditorSliderProps) {
   return (
-    <label className={className ?? "flex items-center justify-between"}>
-      <span>{label} ({displayValue})</span>
+    <div className={className ?? "flex flex-col gap-1.5"}>
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-700 dark:text-gray-300">{label}</span>
+        <span className="text-gray-500 dark:text-gray-400 font-mono text-xs tabular-nums">{displayValue}</span>
+      </div>
       <input
         type="range"
         min={min}
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full accent-blue-500 cursor-pointer"
       />
-    </label>
+    </div>
   );
 }

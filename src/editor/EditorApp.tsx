@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FileText } from "lucide-react";
 import { checkAccessibilityPermission, requestAccessibilityPermission } from "tauri-plugin-macos-permissions-api";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
@@ -6,6 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCardStore } from "../store/useCardStore";
 import { usePrefsStore } from "../store/usePrefsStore";
+import { useThemeClass } from "../hooks/useThemeClass";
 import { Card } from "../types";
 import CardList from "./CardList";
 import CardDetail from "./CardDetail";
@@ -35,10 +37,11 @@ function isCard(value: unknown): value is Card {
 }
 
 function tabClass(active: boolean) {
-  return `px-4 py-2 text-sm font-medium ${active ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`;
+  return `px-4 py-2 text-sm font-medium ${active ? "border-b-2 border-gray-900 text-gray-900 font-medium dark:border-white dark:text-white" : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"}`;
 }
 
 export default function EditorApp() {
+  useThemeClass();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [needsAccessibility, setNeedsAccessibility] = useState(false);
   const [tab, setTab] = useState<"cards" | "preferences" | "position">("cards");
@@ -120,13 +123,13 @@ export default function EditorApp() {
   }
 
   return (
-    <div className="flex flex-col h-screen pt-8">
+    <div className="flex flex-col h-screen pt-8 bg-white dark:bg-gray-900 dark:text-gray-100">
       {isMacOS && needsAccessibility && (
-        <div role="alert" className="fixed top-0 left-0 right-0 bg-yellow-400 text-yellow-900 px-4 py-2 flex items-center justify-between z-50 text-sm">
+        <div role="alert" className="fixed top-0 left-0 right-0 bg-amber-50 text-amber-800 border-b border-amber-200 px-4 py-2 flex items-center justify-between z-50 text-sm">
           <span>단축키를 사용하려면 손쉬운 사용 권한이 필요합니다</span>
           <button
             type="button"
-            className="underline font-medium"
+            className="text-amber-700 font-medium hover:text-amber-900"
             onClick={async () => {
               try {
                 await requestAccessibilityPermission();
@@ -145,7 +148,7 @@ export default function EditorApp() {
           </button>
         </div>
       )}
-      <div className="fixed top-0 left-0 right-0 flex border-b bg-white z-10" data-tauri-drag-region>
+      <div className="fixed top-0 left-0 right-0 flex border-b bg-white dark:bg-gray-900 dark:border-gray-700 z-10" data-tauri-drag-region>
         {/* macOS traffic light spacer (~80px) */}
         <div className="w-20 shrink-0" data-tauri-drag-region />
         <button
@@ -172,7 +175,7 @@ export default function EditorApp() {
         <div className="ml-auto flex items-center gap-2 px-3">
           <button
             type="button"
-            className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+            className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300"
             onClick={() => importCards().catch(console.error)}
           >
             가져오기
@@ -189,7 +192,7 @@ export default function EditorApp() {
       {tab === "cards" ? (
         <div className="flex flex-1 overflow-hidden">
           {/* 사이드바: 카드 목록 */}
-          <div className="w-72 border-r overflow-y-auto p-3">
+          <div className="w-72 border-r dark:border-gray-700 overflow-y-auto p-3">
             <CardList selectedId={selectedId} onSelect={setSelectedId} />
           </div>
           {/* 메인: 카드 상세 */}
@@ -197,8 +200,9 @@ export default function EditorApp() {
             {selectedId ? (
               <CardDetail cardId={selectedId} onDelete={() => setSelectedId(null)} />
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                카드를 선택하거나 새 카드를 추가하세요
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400 dark:text-gray-500">
+                <FileText size={32} strokeWidth={1.5} />
+                <p className="text-sm">카드를 선택하거나 새 카드를 추가하세요</p>
               </div>
             )}
           </div>
