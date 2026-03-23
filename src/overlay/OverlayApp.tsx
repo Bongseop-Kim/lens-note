@@ -8,7 +8,7 @@ export default function OverlayApp() {
   const updatePrefs = usePrefsStore((state) => state.updatePrefs);
 
   useEffect(() => {
-    void usePrefsStore.getState().hydrate();
+    usePrefsStore.getState().hydrate().catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function OverlayApp() {
         <button
           className="px-2 py-1 bg-white/20 rounded text-sm"
           onClick={() => {
-            void updatePrefs({ dragLocked: !dragLocked });
+            updatePrefs({ dragLocked: !dragLocked }).catch(console.error);
           }}
           style={{ pointerEvents: "auto" }}
           type="button"

@@ -12,10 +12,11 @@
 - **`NSWindowCollectionBehavior` 자체는 포커스 비탈취와 무관** — Space/Mission Control 제어 전용
 
 ## Decision
-세 계층으로 분리 대응:
+두 계층으로 분리 대응:
 1. **본문 영역**: CSS `pointer-events: none` → 클릭이 아래 앱(Zoom)으로 통과
 2. **버튼 영역만**: `pointer-events: auto` 복원 + `NSWindowCollectionBehavior.ignoresCycle` 추가
-3. **NSWindow key window 차단**: `canBecomeKeyWindow = false` → 드래그 시에도 Zoom 포커스 유지
+
+> **`focusable: false` 제거 이유**: Tauri의 `focusable: false`는 내부적으로 `setCanBecomeKeyWindow: false` + `setCanBecomeMainWindow: false`를 설정하는데, drag handle(`startDragging`)이 key window를 필요로 하므로 drag가 작동하지 않는 회귀를 유발했음. `ignoresCycle` + `pointer-events: none` 조합으로 동일한 포커스 비탈취 효과를 달성하므로 `focusable: false`는 불필요.
 
 완전한 `NSNonactivatingPanel` 동작은 Tauri NSWindow 구조상 지원 불가. 실용적 대안으로 충분.
 
@@ -41,15 +42,13 @@
 `ignoresCycle` 플래그는 ADR-002의 `set_overlay_window_behavior()` 함수 내 `setCollectionBehavior` 호출에 이미 포함되어 있음 (→ ADR-002 참고).
 별도 함수를 만들지 않고 ADR-002 구현 하나로 통합.
 
-### canBecomeKeyWindow 차단
+### focusable 설정 및 포커스 차단 전략
 
-> ⚠️ **검증 결과 (2026-03-23)**: `msg_send![ns_window, setCanBecomeKeyWindow: false]`는 런타임 패닉을 유발함.
-> `canBecomeKeyWindow`는 setter가 없는 override-only 메서드이며, TaoWindow(`NSKVONotifying_TaoWindow`)에
-> `setCanBecomeKeyWindow:` selector가 존재하지 않음.
->
-> **현재 상태**: `tauri.conf.json`의 `focusable: false`를 제거하고 (drag 복원),
-> `ignoresCycle` + `pointer-events: none`으로 포커스 비탈취를 방지함.
-> 추후 방법이 필요하면 `objc2::ClassBuilder`로 TaoWindow 서브클래스를 런타임에 등록하는 방식 검토.
+`tauri.conf.json`의 `focusable: false`는 제거됨. 이유: 내부적으로 `setCanBecomeKeyWindow: false` + `setCanBecomeMainWindow: false`를 설정하는데, drag handle(`startDragging`)이 key window를 필요로 하여 drag가 작동하지 않는 회귀를 유발함. (`setCanBecomeKeyWindow:` selector는 TaoWindow에 존재하지 않으며 msg_send 호출 시 런타임 패닉 발생 확인.)
+
+**현재 전략**: `ignoresCycle` + `pointer-events: none`으로 포커스 비탈취 방지. 이 조합으로 실용적 수준에서 충분한 효과 달성.
+
+**향후 검토**: 완전한 key window 차단이 필요한 경우 `objc2::ClassBuilder`로 TaoWindow 서브클래스를 런타임에 등록하여 `canBecomeKeyWindow`를 override하는 방식 검토.
 
 ### 드래그 잠금 (Preferences)
 

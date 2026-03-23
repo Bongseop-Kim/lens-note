@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::fs;
 use tauri::Emitter;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -28,7 +27,7 @@ fn cards_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
 #[tauri::command]
 pub async fn read_cards(app: tauri::AppHandle) -> Result<Vec<Card>, String> {
     let path = cards_path(&app)?;
-    match fs::read_to_string(&path) {
+    match tokio::fs::read_to_string(&path).await {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(vec![]),
         Err(e) => Err(e.to_string()),
@@ -44,7 +43,7 @@ pub async fn write_cards(
     let path = cards_path(&app)?;
     super::ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(&cards).map_err(|e| e.to_string())?;
-    fs::write(&path, content).map_err(|e| e.to_string())?;
+    super::atomic_write_json(&path, content).await?;
     // ADR-004: 모든 창에 브로드캐스트
     app.emit(
         "cards-updated",

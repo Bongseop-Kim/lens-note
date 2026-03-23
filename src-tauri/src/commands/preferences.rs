@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::fs;
 use tauri::Emitter;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -66,7 +65,7 @@ fn prefs_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
 #[tauri::command]
 pub async fn read_prefs(app: tauri::AppHandle) -> Result<Preferences, String> {
     let path = prefs_path(&app)?;
-    match fs::read_to_string(&path) {
+    match tokio::fs::read_to_string(&path).await {
         Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Preferences::default()),
         Err(e) => Err(e.to_string()),
@@ -82,7 +81,7 @@ pub async fn write_prefs(
     let path = prefs_path(&app)?;
     super::ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(&prefs).map_err(|e| e.to_string())?;
-    fs::write(&path, content).map_err(|e| e.to_string())?;
+    super::atomic_write_json(&path, content).await?;
     app.emit(
         "prefs-updated",
         &PrefsUpdatedPayload { prefs, client_id },

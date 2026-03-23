@@ -22,3 +22,10 @@ pub(crate) fn ensure_parent_dir(path: &std::path::Path) -> Result<(), String> {
     }
     Ok(())
 }
+
+pub(crate) async fn atomic_write_json(path: &std::path::Path, content: String) -> Result<(), String> {
+    let tmp = path.with_extension("json.tmp");
+    tokio::fs::write(&tmp, &content).await.map_err(|e| e.to_string())?;
+    tokio::fs::rename(&tmp, path).await.map_err(|e| e.to_string())?;
+    Ok(())
+}

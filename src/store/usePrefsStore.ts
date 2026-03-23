@@ -19,9 +19,14 @@ export const usePrefsStore = create<PrefsStore>((set, get) => ({
   prefs: DEFAULT_PREFS,
 
   hydrate: async () => {
-    const saved = await invoke<Preferences>("read_prefs");
-    if (saved) {
-      set({ prefs: { ...DEFAULT_PREFS, ...saved } });
+    try {
+      const saved = await invoke<Preferences>("read_prefs");
+      if (saved) {
+        set({ prefs: { ...DEFAULT_PREFS, ...saved } });
+      }
+    } catch (error) {
+      console.error("Failed to hydrate prefs", error);
+      set({ prefs: DEFAULT_PREFS });
     }
   },
 
