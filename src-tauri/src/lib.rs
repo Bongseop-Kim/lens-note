@@ -14,7 +14,12 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![])
+        .invoke_handler(tauri::generate_handler![
+            commands::cards::read_cards,
+            commands::cards::write_cards,
+            commands::preferences::read_prefs,
+            commands::preferences::write_prefs,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

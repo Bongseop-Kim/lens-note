@@ -22,7 +22,6 @@
         "skipTaskbar": true,
         "resizable": true,
         "focus": false,
-        "focusable": false,
         "shadow": false,
         "visibleOnAllWorkspaces": true,
         "acceptFirstMouse": true
@@ -41,7 +40,8 @@
     ],
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,
