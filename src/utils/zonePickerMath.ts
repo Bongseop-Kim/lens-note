@@ -96,3 +96,48 @@ export function presetBottomFull(monitor: MonitorInfo): CellRect {
   const { cols, rows } = cellCount(monitor);
   return { startCol: 0, startRow: Math.max(0, rows - 2), endCol: cols - 1, endRow: rows - 1 };
 }
+
+/** A selection rectangle in minimap display pixels */
+export interface DisplayRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Convert a display-pixel rect (minimap coordinates) to physical global bounds.
+ * Minimap display px → monitor logical px (via minimapScale) → physical px (via scaleFactor).
+ */
+export function displayRectToPhysicalBounds(
+  rect: DisplayRect,
+  monitor: MonitorInfo
+): PhysicalBounds {
+  const scale = minimapScale(monitor);
+  const logX = rect.x / scale;
+  const logY = rect.y / scale;
+  const logW = rect.w / scale;
+  const logH = rect.h / scale;
+  return {
+    x: Math.round((logX + monitor.x) * monitor.scaleFactor),
+    y: Math.round((logY + monitor.y) * monitor.scaleFactor),
+    width: Math.round(logW * monitor.scaleFactor),
+    height: Math.round(logH * monitor.scaleFactor),
+  };
+}
+
+/**
+ * Clamp a DisplayRect so it stays within the minimap canvas.
+ * Origin is clamped to >= 0; width/height are clamped so the rect doesn't extend past the edge.
+ */
+export function clampDisplayRect(
+  rect: DisplayRect,
+  mapW: number,
+  mapH: number
+): DisplayRect {
+  const x = Math.max(0, Math.min(rect.x, mapW));
+  const y = Math.max(0, Math.min(rect.y, mapH));
+  const w = Math.max(0, Math.min(rect.w, mapW - x));
+  const h = Math.max(0, Math.min(rect.h, mapH - y));
+  return { x, y, w, h };
+}

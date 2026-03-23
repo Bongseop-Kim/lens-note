@@ -46,12 +46,12 @@ export default function Preferences() {
 
   return (
     <div className="p-6 flex flex-col gap-6 max-w-md">
-      <h2 className="text-lg font-semibold dark:text-gray-100">환경설정</h2>
+      <h2 className="text-base font-semibold text-foreground">환경설정</h2>
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <h3 className="font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">표시</h3>
-          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">표시</span>
+          <div className="flex-1 h-px bg-border" />
         </div>
         <EditorSlider
           label="글자 크기"
@@ -79,13 +79,13 @@ export default function Preferences() {
         />
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={prefs.highlightCurrentParagraph}
-            className="rounded border-gray-300 text-gray-900 focus:ring-gray-300 focus:ring-offset-0 dark:border-gray-600"
+            className="rounded border-border text-foreground focus:ring-ring focus:ring-offset-0"
             onChange={(e) => { updatePrefs({ highlightCurrentParagraph: e.target.checked }).catch(console.error); }} />
           <span>현재 단락 하이라이트</span>
         </label>
         <label className="flex items-center gap-2">
           <span>테마</span>
-          <select value={prefs.theme} className="border border-gray-200 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" onChange={(e) => { updatePrefs({ theme: e.target.value as "dark" | "light" }).catch(console.error); }}>
+          <select value={prefs.theme} className="border border-input rounded-md px-2 py-1 text-sm bg-background text-foreground focus:outline-none focus:border-ring" onChange={(e) => { updatePrefs({ theme: e.target.value as "dark" | "light" }).catch(console.error); }}>
             <option value="dark">다크</option>
             <option value="light">라이트</option>
           </select>
@@ -94,23 +94,23 @@ export default function Preferences() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <h3 className="font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">단축키</h3>
-          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">단축키</span>
+          <div className="flex-1 h-px bg-border" />
         </div>
         {(["next", "prev", "jump", "search", "toggle"] as const).map((key) => (
           <div key={key} className="flex flex-col gap-1">
             <label className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">{HOTKEY_LABELS[key]}</span>
+              <span className="text-sm text-muted-foreground">{HOTKEY_LABELS[key]}</span>
               <input
-                className={`border rounded-md px-2 py-1 text-sm font-mono w-32 focus:outline-none dark:bg-transparent dark:text-gray-100 ${
-                  hotkeyErrors[key] ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-gray-400 dark:border-gray-600 dark:focus:border-gray-500"
+                className={`border rounded-md px-2 py-1 text-sm font-mono w-32 bg-background text-foreground text-right focus:outline-none ${
+                  hotkeyErrors[key] ? "border-destructive focus:border-destructive" : "border-input focus:border-ring"
                 }`}
                 value={hotkeyDrafts[key]}
                 onChange={(e) => handleHotkeyChange(key, e.target.value)}
               />
             </label>
             {hotkeyErrors[key] && (
-              <p className="text-xs text-red-600">{hotkeyErrors[key]}</p>
+              <p className="text-xs text-destructive">{hotkeyErrors[key]}</p>
             )}
           </div>
         ))}

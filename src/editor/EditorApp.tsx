@@ -37,7 +37,11 @@ function isCard(value: unknown): value is Card {
 }
 
 function tabClass(active: boolean) {
-  return `px-4 py-2 text-sm font-medium ${active ? "border-b-2 border-gray-900 text-gray-900 font-medium dark:border-white dark:text-white" : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"}`;
+  return `px-4 h-9 text-sm font-medium transition-colors border-b-[1.5px] -mb-px ${
+    active
+      ? "border-foreground text-foreground"
+      : "border-transparent text-muted-foreground hover:text-foreground"
+  }`;
 }
 
 export default function EditorApp() {
@@ -123,13 +127,13 @@ export default function EditorApp() {
   }
 
   return (
-    <div className="flex flex-col h-screen pt-8 bg-white dark:bg-gray-900 dark:text-gray-100">
+    <div className="flex flex-col h-screen pt-9 bg-background text-foreground">
       {isMacOS && needsAccessibility && (
-        <div role="alert" className="fixed top-0 left-0 right-0 bg-amber-50 text-amber-800 border-b border-amber-200 px-4 py-2 flex items-center justify-between z-50 text-sm">
+        <div role="alert" className="fixed top-0 left-0 right-0 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-b border-amber-200 dark:border-amber-800 px-4 py-2 flex items-center justify-between z-50 text-sm">
           <span>단축키를 사용하려면 손쉬운 사용 권한이 필요합니다</span>
           <button
             type="button"
-            className="text-amber-700 font-medium hover:text-amber-900"
+            className="text-amber-700 dark:text-amber-400 font-medium hover:text-amber-900 dark:hover:text-amber-200"
             onClick={async () => {
               try {
                 await requestAccessibilityPermission();
@@ -148,7 +152,7 @@ export default function EditorApp() {
           </button>
         </div>
       )}
-      <div className="fixed top-0 left-0 right-0 flex border-b bg-white dark:bg-gray-900 dark:border-gray-700 z-10" data-tauri-drag-region>
+      <div className="fixed top-0 left-0 right-0 flex border-b border-border bg-background z-10" data-tauri-drag-region>
         {/* macOS traffic light spacer (~80px) */}
         <div className="w-20 shrink-0" data-tauri-drag-region />
         <button
@@ -175,14 +179,14 @@ export default function EditorApp() {
         <div className="ml-auto flex items-center gap-2 px-3">
           <button
             type="button"
-            className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300"
+            className="h-[22px] px-2.5 text-xs font-medium text-muted-foreground border border-border rounded-md bg-transparent hover:bg-accent hover:text-foreground transition-colors"
             onClick={() => importCards().catch(console.error)}
           >
             가져오기
           </button>
           <button
             type="button"
-            className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded"
+            className="h-[22px] px-2.5 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
             onClick={() => exportCards().catch(console.error)}
           >
             내보내기
@@ -192,7 +196,7 @@ export default function EditorApp() {
       {tab === "cards" ? (
         <div className="flex flex-1 overflow-hidden">
           {/* 사이드바: 카드 목록 */}
-          <div className="w-72 border-r dark:border-gray-700 overflow-y-auto p-3">
+          <div className="w-72 border-r border-border overflow-y-auto p-2 bg-muted/30">
             <CardList selectedId={selectedId} onSelect={setSelectedId} />
           </div>
           {/* 메인: 카드 상세 */}
@@ -200,7 +204,7 @@ export default function EditorApp() {
             {selectedId ? (
               <CardDetail cardId={selectedId} onDelete={() => setSelectedId(null)} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400 dark:text-gray-500">
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
                 <FileText size={32} strokeWidth={1.5} />
                 <p className="text-sm">카드를 선택하거나 새 카드를 추가하세요</p>
               </div>

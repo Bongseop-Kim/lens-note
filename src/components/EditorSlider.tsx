@@ -20,8 +20,8 @@ export default function EditorSlider({
   return (
     <div className={className ?? "flex flex-col gap-1.5"}>
       <div className="flex justify-between text-sm">
-        <span className="text-gray-700 dark:text-gray-300">{label}</span>
-        <span className="text-gray-500 dark:text-gray-400 font-mono text-xs tabular-nums">{displayValue}</span>
+        <span className="text-foreground">{label}</span>
+        <span className="text-muted-foreground font-mono text-xs tabular-nums">{displayValue}</span>
       </div>
       <input
         type="range"
@@ -29,7 +29,7 @@ export default function EditorSlider({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-blue-500 cursor-pointer"
+        className="w-full accent-foreground cursor-pointer"
       />
     </div>
   );
