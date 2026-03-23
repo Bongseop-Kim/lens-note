@@ -1,7 +1,8 @@
+use tauri::Manager;
+
 #[cfg(target_os = "macos")]
 pub fn configure_overlay_window(app: &tauri::AppHandle) {
     use objc2_app_kit::{NSFloatingWindowLevel, NSWindow, NSWindowCollectionBehavior};
-    use tauri::Manager;
 
     let Some(overlay) = app.get_webview_window("overlay") else {
         eprintln!("configure_overlay_window: 'overlay' window not found");
@@ -28,4 +29,23 @@ pub fn configure_overlay_window(app: &tauri::AppHandle) {
                 | NSWindowCollectionBehavior::IgnoresCycle,
         );
     }
+}
+
+#[tauri::command]
+pub async fn set_overlay_bounds(
+    app: tauri::AppHandle,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        overlay
+            .set_position(tauri::PhysicalPosition::new(x as i32, y as i32))
+            .map_err(|e| e.to_string())?;
+        overlay
+            .set_size(tauri::PhysicalSize::new(width as u32, height as u32))
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
