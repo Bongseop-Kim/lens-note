@@ -31,10 +31,11 @@ export default function CardDetail({
 
   function handleSave() {
     if (!isDirty) return;
-    const promise = updateCard(cardId, { title, body });
+    const promise = updateCard(cardId, { title, body })
+      .then(() => { setIsDirty(false); })
+      .catch((err) => { console.error("Failed to save card:", err); })
+      .finally(() => { if (pendingSaveRef.current === promise) pendingSaveRef.current = null; });
     pendingSaveRef.current = promise;
-    promise.finally(() => { pendingSaveRef.current = null; });
-    setIsDirty(false);
   }
 
   async function handleDelete() {
@@ -45,16 +46,24 @@ export default function CardDetail({
     onDelete?.();
   }
 
+  function enqueueTagUpdate(newTags: string[]) {
+    const p = (pendingSaveRef.current ?? Promise.resolve())
+      .then(() => updateCard(cardId, { tags: newTags }))
+      .catch((err) => { console.error("Failed to update tags:", err); })
+      .finally(() => { if (pendingSaveRef.current === p) pendingSaveRef.current = null; });
+    pendingSaveRef.current = p;
+  }
+
   function addTag() {
     const tag = tagInput.trim();
     if (tag && !card!.tags.includes(tag)) {
-      updateCard(cardId, { tags: [...card!.tags, tag] });
+      enqueueTagUpdate([...card!.tags, tag]);
     }
     setTagInput("");
   }
 
   function removeTag(tag: string) {
-    updateCard(cardId, { tags: card!.tags.filter((t) => t !== tag) });
+    enqueueTagUpdate(card!.tags.filter((t) => t !== tag));
   }
 
   return (

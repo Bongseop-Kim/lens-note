@@ -1,7 +1,14 @@
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    Dark,
+    Light,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct HotkeyConfig {
     pub next: String,
@@ -9,6 +16,18 @@ pub struct HotkeyConfig {
     pub jump: String,
     pub search: String,
     pub toggle: String,
+}
+
+impl Default for HotkeyConfig {
+    fn default() -> Self {
+        Self {
+            next: "ArrowRight".into(),
+            prev: "ArrowLeft".into(),
+            jump: "Ctrl+G".into(),
+            search: "Ctrl+F".into(),
+            toggle: "Ctrl+Shift+P".into(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -22,7 +41,7 @@ pub struct Preferences {
     pub overlay_x: f64,
     pub overlay_y: f64,
     pub hotkeys: HotkeyConfig,
-    pub theme: String,
+    pub theme: Theme,
     pub highlight_current_paragraph: bool,
     pub drag_locked: bool,
 }
@@ -37,14 +56,8 @@ impl Default for Preferences {
             overlay_height: 160.0,
             overlay_x: 0.0,
             overlay_y: 0.0,
-            hotkeys: HotkeyConfig {
-                next: "ArrowRight".into(),
-                prev: "ArrowLeft".into(),
-                jump: "Ctrl+G".into(),
-                search: "Ctrl+F".into(),
-                toggle: "Ctrl+Shift+P".into(),
-            },
-            theme: "dark".into(),
+            hotkeys: HotkeyConfig::default(),
+            theme: Theme::Dark,
             highlight_current_paragraph: true,
             drag_locked: true,
         }
