@@ -165,7 +165,7 @@ export default function OverlayApp() {
                   tabIndex={0}
                   className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 cursor-pointer text-white text-sm"
                   onClick={selectCard}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectCard(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectCard(); } }}
                 >
                   <span className="font-medium">{card.title}</span>
                   <span className="text-gray-400 ml-2 text-xs truncate">{card.body.slice(0, 40)}</span>

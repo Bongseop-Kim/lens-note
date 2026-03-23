@@ -59,7 +59,13 @@ pub(crate) fn register_configured_hotkeys(
     if let Ok(mut stored_bindings) = bindings.0.lock() {
         *stored_bindings = next_bindings;
     } else {
-        eprintln!("Failed to update hotkey bindings map");
+        eprintln!("Failed to update hotkey bindings map; reverting OS registrations");
+        if let Err(e) = app.global_shortcut().unregister_all() {
+            eprintln!("Failed to revert hotkey registrations: {e}");
+        }
+        return Err(tauri_plugin_global_shortcut::Error::GlobalHotkey(
+            "mutex poisoned; hotkey registrations reverted".to_string(),
+        ));
     }
 
     Ok(())
