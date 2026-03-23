@@ -89,6 +89,7 @@ export default function ZonePicker() {
   function applySelection(r: DisplayRect) {
     if (!monitor) return;
     const bounds = displayRectToPhysicalBounds(r, monitor);
+    const { overlayX, overlayY, overlayWidth, overlayHeight } = usePrefsStore.getState().prefs;
     invoke("set_overlay_bounds", {
       x: bounds.x,
       y: bounds.y,
@@ -103,7 +104,15 @@ export default function ZonePicker() {
           overlayHeight: bounds.height,
         })
       )
-      .catch(console.error);
+      .catch((err) => {
+        console.error("applySelection: reverting overlay bounds after prefs update failure", err);
+        invoke("set_overlay_bounds", {
+          x: overlayX,
+          y: overlayY,
+          width: overlayWidth,
+          height: overlayHeight,
+        }).catch(console.error);
+      });
   }
 
   function finalizeDrag() {
@@ -207,7 +216,7 @@ export default function ZonePicker() {
         <div className="flex gap-1">
           {monitors.map((m, i) => (
             <button
-              key={m.name || String(i)}
+              key={`${m.name}-${i}`}
               type="button"
               onClick={() => { setActiveMonitorIdx(i); setSelection(null); setDrag(null); setHoverCursor(CURSOR.default); }}
               className={`h-[22px] px-2.5 text-xs rounded-md font-medium border transition-colors ${
