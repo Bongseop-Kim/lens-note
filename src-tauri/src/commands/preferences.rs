@@ -8,7 +8,7 @@ pub enum Theme {
     Light,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(default, rename_all = "camelCase")]
 pub struct HotkeyConfig {
     pub next: String,
@@ -139,8 +139,11 @@ pub async fn write_prefs(
     client_id: Option<String>,
 ) -> Result<(), String> {
     let prefs = prefs.clamped();
-    if let Err(error) = crate::register_configured_hotkeys(&app, &prefs.hotkeys) {
-        eprintln!("Failed to apply updated hotkeys: {error}");
+    let saved_prefs = load_prefs_sync(&app);
+    if prefs.hotkeys != saved_prefs.hotkeys {
+        if let Err(error) = crate::register_configured_hotkeys(&app, &prefs.hotkeys) {
+            eprintln!("Failed to apply updated hotkeys: {error}");
+        }
     }
     let path = prefs_path(&app)?;
     super::ensure_parent_dir(&path)?;

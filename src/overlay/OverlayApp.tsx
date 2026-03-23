@@ -150,22 +150,28 @@ export default function OverlayApp() {
               }}
             />
             <ul className="max-h-40 overflow-y-auto flex flex-col gap-1">
-              {searchResults.map((card) => (
+              {searchResults.map((card) => {
+                const selectCard = () => {
+                  const idx = cards.findIndex((c) => c.id === card.id);
+                  if (idx !== -1) setCurrentIndex(idx);
+                  setShowSearch(false);
+                  setSearchQuery("");
+                  setSearchResults([]);
+                };
+                return (
                 <li
                   key={card.id}
+                  role="button"
+                  tabIndex={0}
                   className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 cursor-pointer text-white text-sm"
-                  onClick={() => {
-                    const idx = cards.findIndex((c) => c.id === card.id);
-                    if (idx !== -1) setCurrentIndex(idx);
-                    setShowSearch(false);
-                    setSearchQuery("");
-                    setSearchResults([]);
-                  }}
+                  onClick={selectCard}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectCard(); }}
                 >
                   <span className="font-medium">{card.title}</span>
                   <span className="text-gray-400 ml-2 text-xs truncate">{card.body.slice(0, 40)}</span>
                 </li>
-              ))}
+              );
+              })}
               {searchQuery && searchResults.length === 0 && (
                 <li className="text-gray-500 text-sm px-2">결과 없음</li>
               )}

@@ -102,7 +102,9 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
         eprintln!("Skipping tray icon image because no default window icon is configured");
     }
 
-    tray_builder.build(app)?;
+    if let Err(error) = tray_builder.build(app) {
+        eprintln!("Failed to build tray icon: {error}");
+    }
 
     Ok(())
 }
@@ -123,7 +125,9 @@ pub fn run() {
                 commands::window::configure_overlay_window(&app.handle());
             }
 
-            setup_tray(app)?;
+            if let Err(error) = setup_tray(app) {
+                eprintln!("Failed to set up tray: {error}");
+            }
 
             let prefs = commands::preferences::load_prefs_sync(&app.handle());
 
