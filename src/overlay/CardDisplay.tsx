@@ -12,7 +12,6 @@ export default function CardDisplay() {
 
   const paragraphs = card ? card.body.split("\n").filter((p) => p.trim()) : [];
 
-  // 카드 전환 시 스크롤 상단으로 (PRD F-03)
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
     setActiveIndex(0);
@@ -20,21 +19,35 @@ export default function CardDisplay() {
   }, [currentIndex]);
 
   useEffect(() => {
-    const observers = paragraphRefs.current.map((el, i) => {
-      if (!el) return null;
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setActiveIndex(i);
-          }
-        },
-        { threshold: 0.5, root: scrollRef.current }
-      );
-      obs.observe(el);
-      return obs;
+    if (!scrollRef.current || paragraphs.length === 0) {
+      return;
+    }
+
+    let observers: IntersectionObserver[] = [];
+    const frame = window.requestAnimationFrame(() => {
+      const refs = paragraphRefs.current
+        .map((el, i) => (el ? { el, i } : null))
+        .filter((entry): entry is { el: HTMLParagraphElement; i: number } => entry !== null);
+
+      observers = refs.map(({ el, i }) => {
+        const obs = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) {
+              setActiveIndex(i);
+            }
+          },
+          { threshold: 0.5, root: scrollRef.current }
+        );
+        obs.observe(el);
+        return obs;
+      });
     });
-    return () => observers.forEach((obs) => obs?.disconnect());
-  }, [currentIndex, paragraphs.length]);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observers.forEach((obs) => obs.disconnect());
+    };
+  }, [currentIndex, paragraphs]);
 
   if (!card) {
     return (

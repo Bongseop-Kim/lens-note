@@ -10,19 +10,49 @@ import CardList from "./CardList";
 import CardDetail from "./CardDetail";
 import Preferences from "./Preferences";
 
+const isMacOS = /mac/i.test(navigator.userAgent);
+
+function isPluginUnavailableError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /not available|plugin.*(missing|not found|not initialized)|unsupported/i.test(message);
+}
+
+function isCard(value: unknown): value is Card {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Partial<Card>;
+  return typeof candidate.id === "string"
+    && typeof candidate.title === "string"
+    && typeof candidate.body === "string"
+    && Array.isArray(candidate.tags)
+    && typeof candidate.order === "number"
+    && typeof candidate.createdAt === "string"
+    && typeof candidate.updatedAt === "string";
+}
+
 export default function EditorApp() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [needsAccessibility, setNeedsAccessibility] = useState(false);
   const [tab, setTab] = useState<"cards" | "preferences">("cards");
 
   useEffect(() => {
+    if (!isMacOS) {
+      setNeedsAccessibility(false);
+      return;
+    }
+
     checkAccessibilityPermission()
       .then((granted) => {
         setNeedsAccessibility(!granted);
       })
       .catch((error) => {
+        if (isPluginUnavailableError(error)) {
+          console.warn("Accessibility permission API is unavailable on this platform", error);
+          return;
+        }
         console.error("Failed to check accessibility permission", error);
-        setNeedsAccessibility(true);
       });
   }, []);
 
@@ -55,27 +85,47 @@ export default function EditorApp() {
     const path = typeof selected === "string" ? selected : Array.isArray(selected) ? selected[0] : null;
     if (!path) return;
     const content = await readTextFile(path);
-    const imported: Card[] = JSON.parse(content);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch (error) {
+      console.error("Failed to parse imported cards JSON", error);
+      window.alert("JSON 형식이 올바르지 않습니다.");
+      return;
+    }
+    if (!Array.isArray(parsed) || !parsed.every(isCard)) {
+      window.alert("카드 배열 형식의 JSON만 가져올 수 있습니다.");
+      return;
+    }
+    const imported = parsed as Card[];
     const mode = window.confirm("기존 카드를 교체할까요? (취소: 병합)") ? "replace" : "merge";
     const existing = useCardStore.getState().cards;
     const result = mode === "replace" ? imported : [...existing, ...imported];
     await invoke("write_cards", { cards: result });
+    useCardStore.getState().setCards(result);
   }
 
   return (
     <div className="flex flex-col h-screen pt-8">
-      {needsAccessibility && (
+      {isMacOS && needsAccessibility && (
         <div role="alert" className="fixed top-0 left-0 right-0 bg-yellow-400 text-yellow-900 px-4 py-2 flex items-center justify-between z-50 text-sm">
           <span>단축키를 사용하려면 손쉬운 사용 권한이 필요합니다</span>
           <button
             type="button"
             className="underline font-medium"
             onClick={async () => {
+              if (!isMacOS) {
+                return;
+              }
               try {
                 await requestAccessibilityPermission();
                 const granted = await checkAccessibilityPermission();
                 if (granted) setNeedsAccessibility(false);
               } catch (error) {
+                if (isPluginUnavailableError(error)) {
+                  console.warn("Accessibility permission request is unavailable on this platform", error);
+                  return;
+                }
                 console.error("Failed to request accessibility permission", error);
               }
             }}

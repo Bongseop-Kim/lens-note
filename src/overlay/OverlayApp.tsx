@@ -33,13 +33,17 @@ export default function OverlayApp() {
     hydratePrefs().catch(console.error);
 
     const unlistenPromise = listen<string>("hotkey-fired", (event) => {
-      const id = event.payload.toLowerCase();
-      if (id.includes("keyg") || id.includes("ctrl+g")) { setShowJump(true); return; }
-      if (id.includes("keyf") || id.includes("ctrl+f")) { setShowSearch(true); return; }
+      const id = event.payload;
+      if (id === "jump") { setShowJump(true); return; }
+      if (id === "search") { setShowSearch(true); return; }
+      if (id === "toggle") {
+        setShowSettings((value) => !value);
+        return;
+      }
       const { currentIndex: idx, cards: c } = useCardStore.getState();
-      if (id.includes("right") && idx < c.length - 1) {
+      if (id === "next" && idx < c.length - 1) {
         useCardStore.setState({ currentIndex: idx + 1 });
-      } else if (id.includes("left") && idx > 0) {
+      } else if (id === "prev" && idx > 0) {
         useCardStore.setState({ currentIndex: idx - 1 });
       }
     });
@@ -126,7 +130,13 @@ export default function OverlayApp() {
                 setSearchQuery(e.target.value);
                 setSearchResults(searchCards(e.target.value));
               }}
-              onKeyDown={(e) => { if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setShowSearch(false);
+                  setSearchQuery("");
+                  setSearchResults([]);
+                }
+              }}
             />
             <ul className="max-h-40 overflow-y-auto flex flex-col gap-1">
               {searchResults.map((card) => (
@@ -138,6 +148,7 @@ export default function OverlayApp() {
                     if (idx !== -1) setCurrentIndex(idx);
                     setShowSearch(false);
                     setSearchQuery("");
+                    setSearchResults([]);
                   }}
                 >
                   <span className="font-medium">{card.title}</span>

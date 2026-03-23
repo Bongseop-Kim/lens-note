@@ -11,7 +11,14 @@ export function initSearch(cards: Card[]) {
   });
 }
 
+export function resetSearch() {
+  fuse = null;
+}
+
 export function searchCards(query: string): Card[] {
-  if (!fuse || !query.trim()) return [];
+  if (!query.trim()) return [];
+  if (!fuse) {
+    throw new Error("Search index has not been initialized");
+  }
   return fuse.search(query).map((r) => r.item);
 }

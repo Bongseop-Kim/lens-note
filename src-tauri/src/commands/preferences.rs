@@ -64,6 +64,31 @@ impl Default for Preferences {
     }
 }
 
+pub fn load_prefs_sync(app: &tauri::AppHandle) -> Preferences {
+    let path = match prefs_path(app) {
+        Ok(path) => path,
+        Err(error) => {
+            eprintln!("Failed to resolve preferences path: {error}");
+            return Preferences::default();
+        }
+    };
+
+    match std::fs::read_to_string(&path) {
+        Ok(content) => match serde_json::from_str::<Preferences>(&content) {
+            Ok(prefs) => prefs.clamped(),
+            Err(error) => {
+                eprintln!("Failed to parse preferences file '{}': {error}", path.display());
+                Preferences::default()
+            }
+        },
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Preferences::default(),
+        Err(error) => {
+            eprintln!("Failed to read preferences file '{}': {error}", path.display());
+            Preferences::default()
+        }
+    }
+}
+
 impl Preferences {
     pub fn clamped(self) -> Self {
         Self {
@@ -91,7 +116,9 @@ fn prefs_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
 pub async fn read_prefs(app: tauri::AppHandle) -> Result<Preferences, String> {
     let path = prefs_path(&app)?;
     match tokio::fs::read_to_string(&path).await {
-        Ok(content) => serde_json::from_str(&content).map_err(|e| e.to_string()),
+        Ok(content) => serde_json::from_str::<Preferences>(&content)
+            .map(|p| p.clamped())
+            .map_err(|e| e.to_string()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Preferences::default()),
         Err(e) => Err(e.to_string()),
     }
@@ -104,6 +131,9 @@ pub async fn write_prefs(
     client_id: Option<String>,
 ) -> Result<(), String> {
     let prefs = prefs.clamped();
+    if let Err(error) = crate::register_configured_hotkeys(&app, &prefs.hotkeys) {
+        eprintln!("Failed to apply updated hotkeys: {error}");
+    }
     let path = prefs_path(&app)?;
     super::ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(&prefs).map_err(|e| e.to_string())?;
