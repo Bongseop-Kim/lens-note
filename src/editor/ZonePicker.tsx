@@ -67,8 +67,8 @@ export default function ZonePicker() {
         prefs.overlayHeight > 0 &&
         prefs.overlayX >= monitor.x &&
         prefs.overlayY >= monitor.y &&
-        prefs.overlayX <= monitor.x + monitor.width &&
-        prefs.overlayY <= monitor.y + monitor.height;
+        prefs.overlayX < monitor.x + monitor.width &&
+        prefs.overlayY < monitor.y + monitor.height;
 
       if (!inBounds) {
         return { ...previous, [activeMonitorIdx]: null };

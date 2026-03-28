@@ -45,6 +45,8 @@ pub struct ZonePreset {
     pub w: f64,
     pub h: f64,
     pub built_in: bool,
+    #[serde(default)]
+    pub monitor_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -94,13 +96,19 @@ pub fn load_prefs_sync(app: &tauri::AppHandle) -> Preferences {
         Ok(content) => match serde_json::from_str::<Preferences>(&content) {
             Ok(prefs) => prefs.clamped(),
             Err(error) => {
-                eprintln!("Failed to parse preferences file '{}': {error}", path.display());
+                eprintln!(
+                    "Failed to parse preferences file '{}': {error}",
+                    path.display()
+                );
                 Preferences::default()
             }
         },
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Preferences::default(),
         Err(error) => {
-            eprintln!("Failed to read preferences file '{}': {error}", path.display());
+            eprintln!(
+                "Failed to read preferences file '{}': {error}",
+                path.display()
+            );
             Preferences::default()
         }
     }
@@ -109,7 +117,11 @@ pub fn load_prefs_sync(app: &tauri::AppHandle) -> Preferences {
 impl Preferences {
     pub fn clamped(self) -> Self {
         fn finite_or(value: f64, fallback: f64) -> f64 {
-            if value.is_finite() { value } else { fallback }
+            if value.is_finite() {
+                value
+            } else {
+                fallback
+            }
         }
 
         let d = Self::default();
@@ -185,11 +197,8 @@ pub async fn write_prefs(
     super::ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(&prefs).map_err(|e| e.to_string())?;
     super::atomic_write_json(&path, content).await?;
-    app.emit(
-        "prefs-updated",
-        &PrefsUpdatedPayload { prefs, client_id },
-    )
-    .map_err(|e: tauri::Error| e.to_string())?;
+    app.emit("prefs-updated", &PrefsUpdatedPayload { prefs, client_id })
+        .map_err(|e: tauri::Error| e.to_string())?;
     Ok(())
 }
 
@@ -232,6 +241,7 @@ mod tests {
             w: 0.5,
             h: 0.5,
             built_in: false,
+            monitor_name: Some("Studio Display".to_string()),
         };
 
         let mut prefs = Preferences::default();
@@ -243,5 +253,18 @@ mod tests {
         assert_eq!(parsed.custom_presets.len(), 1);
         assert_eq!(parsed.custom_presets[0].label, "My Zone");
         assert!(!parsed.custom_presets[0].built_in);
+        assert_eq!(
+            parsed.custom_presets[0].monitor_name.as_deref(),
+            Some("Studio Display")
+        );
+    }
+
+    #[test]
+    fn zone_preset_deserializes_without_monitor_name() {
+        let json =
+            r#"{"id":"test-id","label":"My Zone","x":0.0,"y":0.5,"w":0.5,"h":0.5,"builtIn":false}"#;
+        let preset: ZonePreset = serde_json::from_str(json).unwrap();
+
+        assert_eq!(preset.monitor_name, None);
     }
 }

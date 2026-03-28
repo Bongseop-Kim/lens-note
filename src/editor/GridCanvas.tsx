@@ -140,7 +140,7 @@ export default function GridCanvas({
       {Array.from(colGuides.entries()).map(([colIdx, label]) => (
         <div
           key={`cg-${colIdx}`}
-          className="absolute top-0 -translate-x-1/2 text-s font-semibold leading-none text-muted-foreground"
+          className="absolute top-0 -translate-x-1/2 text-xs font-semibold leading-none text-muted-foreground"
           style={{ left: GUIDE_BAND + Math.round(colIdx * cellW), top: 4 }}
         >
           {label}
@@ -150,7 +150,7 @@ export default function GridCanvas({
       {Array.from(rowGuides.entries()).map(([rowIdx, label]) => (
         <div
           key={`rg-${rowIdx}`}
-          className="absolute left-0 -translate-y-1/2 text-s font-semibold leading-none text-muted-foreground"
+          className="absolute left-0 -translate-y-1/2 text-xs font-semibold leading-none text-muted-foreground"
           style={{ top: GUIDE_BAND + Math.round(rowIdx * cellH), left: 0 }}
         >
           {label}

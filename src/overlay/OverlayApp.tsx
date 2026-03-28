@@ -4,12 +4,14 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { useCardStore } from "../store/useCardStore";
 import { usePrefsStore } from "../store/usePrefsStore";
+import { useThemeClass } from "../hooks/useThemeClass";
 import CardDisplay from "./CardDisplay";
 import { initSearch, searchCards } from "../utils/search";
 import { SEARCH_RESULT_PREVIEW_LENGTH } from "../utils/constants";
 import { Card } from "../types";
 
 export default function OverlayApp() {
+  const themeClass = useThemeClass();
   const [activePanel, setActivePanel] = useState<"jump" | "search" | null>(null);
   const { cards, setCurrentIndex, hydrate } = useCardStore();
   const { hydrate: hydratePrefs, prefs } = usePrefsStore();
@@ -90,9 +92,12 @@ export default function OverlayApp() {
 
   return (
     <div
-      className="relative flex flex-col w-full h-screen overflow-hidden"
+      className={`${themeClass} relative flex h-screen w-full flex-col overflow-hidden bg-background text-foreground`}
       style={{
-        backgroundColor: `rgba(0, 0, 0, ${prefs.opacity})`,
+        backgroundColor:
+          themeClass === "dark"
+            ? `rgba(0, 0, 0, ${prefs.opacity})`
+            : `rgba(255, 255, 255, ${prefs.opacity})`,
         pointerEvents: "none",
       }}
     >
@@ -105,48 +110,48 @@ export default function OverlayApp() {
 
       {activePanel === "jump" && (
         <div
-          className="absolute inset-0 flex items-center justify-center bg-black/50"
+          className="absolute inset-0 flex items-center justify-center bg-background/60"
           style={{ pointerEvents: "auto" }}
         >
-          <div className="w-[320px] rounded-2xl border border-white/10 bg-black/80 p-5 text-white shadow-2xl backdrop-blur">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-white/45">Jump To Card</p>
+          <div className="w-[320px] rounded-2xl border border-border/80 bg-card/90 p-5 text-foreground shadow-2xl backdrop-blur">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Jump To Card</p>
             <div className="mt-3 flex items-center gap-3">
-            <span className="text-sm text-white/78">#</span>
-            <input
-              autoFocus
-              className="w-20 rounded-lg border border-white/10 bg-white/8 px-3 py-2 text-center text-white outline-none ring-0 placeholder:text-white/25"
-              value={jumpInput}
-              onChange={(e) => setJumpInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const n = parseInt(jumpInput, 10);
-                  if (!isNaN(n) && n >= 1 && n <= cards.length) {
-                    setCurrentIndex(n - 1);
+              <span className="text-sm text-muted-foreground">#</span>
+              <input
+                autoFocus
+                className="w-20 rounded-lg border border-input bg-background/70 px-3 py-2 text-center text-foreground outline-none ring-0 placeholder:text-muted-foreground"
+                value={jumpInput}
+                onChange={(e) => setJumpInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const n = parseInt(jumpInput, 10);
+                    if (!isNaN(n) && n >= 1 && n <= cards.length) {
+                      setCurrentIndex(n - 1);
+                    }
+                    setActivePanel(null);
+                    setJumpInput("");
                   }
-                  setActivePanel(null);
-                  setJumpInput("");
-                }
-                if (e.key === "Escape") { setActivePanel(null); setJumpInput(""); }
-              }}
-              placeholder="1"
-            />
+                  if (e.key === "Escape") { setActivePanel(null); setJumpInput(""); }
+                }}
+                placeholder="1"
+              />
             </div>
-            <p className="mt-3 text-xs text-white/40">{cards.length}</p>
+            <p className="mt-3 text-xs text-muted-foreground">{cards.length}</p>
           </div>
         </div>
       )}
 
       {activePanel === "search" && (
         <div
-          className="absolute inset-0 flex flex-col items-center pt-8 bg-black/60"
+          className="absolute inset-0 flex flex-col items-center bg-background/70 pt-8"
           style={{ pointerEvents: "auto" }}
         >
-          <div className="w-[360px] rounded-2xl border border-white/10 bg-black/80 p-4 shadow-2xl backdrop-blur">
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/8 px-3 py-2">
-              <Search size={14} className="text-white/45" />
+          <div className="w-[360px] rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xl backdrop-blur">
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-input bg-background/70 px-3 py-2">
+              <Search size={14} className="text-muted-foreground" />
               <input
                 autoFocus
-                className="w-full bg-transparent text-white outline-none placeholder:text-white/30"
+                className="w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
                 value={searchQuery}
                 placeholder="검색"
                 onChange={(e) => {
@@ -177,19 +182,19 @@ export default function OverlayApp() {
                     key={card.id}
                     role="button"
                     tabIndex={0}
-                    className="cursor-pointer rounded-xl border border-white/8 bg-white/6 px-3 py-2 text-sm text-white transition-colors hover:bg-white/12"
+                    className="cursor-pointer rounded-xl border border-border/80 bg-background/60 px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent"
                     onClick={() => selectCard(card.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectCard(card.id); } }}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">{card.title}</span>
-                      <span className="text-[11px] uppercase tracking-[0.18em] text-white/35">↵</span>
+                      <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">↵</span>
                     </div>
-                    <p className="mt-1 truncate text-xs text-white/45">{card.body.slice(0, SEARCH_RESULT_PREVIEW_LENGTH)}</p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{card.body.slice(0, SEARCH_RESULT_PREVIEW_LENGTH)}</p>
                   </li>
                 ))}
               {searchQuery && searchResults.length === 0 && (
-                <li className="px-2 text-sm text-white/30">없음</li>
+                <li className="px-2 text-sm text-muted-foreground">없음</li>
               )}
             </ul>
           </div>

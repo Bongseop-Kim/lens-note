@@ -19,7 +19,8 @@ export interface PhysicalBounds {
 
 /** Scale factor: minimap display px per monitor physical px */
 export function minimapScale(monitor: MonitorInfo, displayWidth = MINIMAP_DISPLAY_WIDTH): number {
-  return displayWidth / monitor.width;
+  const safeWidth = Math.max(1, monitor.width);
+  return displayWidth / safeWidth;
 }
 
 export function placementCanvasSize(

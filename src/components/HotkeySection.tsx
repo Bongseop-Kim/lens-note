@@ -12,16 +12,24 @@ export default function HotkeySection() {
   const { prefs, updatePrefs } = usePrefsStore();
   const [openAction, setOpenAction] = useState<keyof HotkeyConfig | null>(null);
 
-  function handleSave(shortcut: string) {
+  async function handleSave(shortcut: string) {
     if (openAction === null) return;
-    void updatePrefs({
-      hotkeys: { ...prefs.hotkeys, [openAction]: shortcut },
-    }).catch(console.error);
-    setOpenAction(null);
+    try {
+      await updatePrefs({
+        hotkeys: { ...prefs.hotkeys, [openAction]: shortcut },
+      });
+      setOpenAction(null);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
-  function handleReset() {
-    void updatePrefs({ hotkeys: DEFAULT_PREFS.hotkeys }).catch(console.error);
+  async function handleReset() {
+    try {
+      await updatePrefs({ hotkeys: DEFAULT_PREFS.hotkeys });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (

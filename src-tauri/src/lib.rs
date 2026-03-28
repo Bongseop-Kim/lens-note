@@ -248,7 +248,7 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
             .iter()
             .find(|preset| preset.id == id)
             .map(|preset| preset.label)
-            .expect("built-in preset should exist")
+            .unwrap_or_else(|| panic!("unknown preset id: {}", id))
     };
 
     let show_hide = MenuItem::with_id(app, "toggle_overlay", "Show/Hide Overlay", true, None::<&str>)?;

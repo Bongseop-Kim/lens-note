@@ -18,7 +18,7 @@ export default function CardDisplay({ paragraphs, activeIndex, cardTitle, cardPo
 
   if (paragraphs.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center px-6 text-sm text-white/45">
+      <div className="flex flex-1 items-center justify-center px-6 text-sm text-muted-foreground">
         Editor에서 카드 큐를 준비하면 여기에서 바로 읽을 수 있습니다.
       </div>
     );
@@ -26,15 +26,15 @@ export default function CardDisplay({ paragraphs, activeIndex, cardTitle, cardPo
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/10 px-3 py-2 text-white/72">
+      <div className="border-b border-border/80 px-3 py-2 text-foreground/75">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">{cardTitle || "제목 없는 카드"}</p>
-            <p className="mt-0.5 text-[11px] font-medium text-white/45">
+            <p className="truncate text-sm font-medium text-foreground">{cardTitle || "제목 없는 카드"}</p>
+            <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
               {cardPosition}
             </p>
           </div>
-          <div className="h-2 w-2 rounded-full bg-white/35" />
+          <div className="h-2 w-2 rounded-full bg-foreground/35" />
         </div>
       </div>
 
@@ -43,7 +43,6 @@ export default function CardDisplay({ paragraphs, activeIndex, cardTitle, cardPo
         style={{
           fontSize: `${prefs.fontSize}px`,
           lineHeight: prefs.lineHeight,
-          color: "#f5f5f5",
         }}
       >
         {paragraphs.map((p, i) => (
@@ -52,7 +51,7 @@ export default function CardDisplay({ paragraphs, activeIndex, cardTitle, cardPo
             ref={(el) => { paragraphRefs.current[i] = el; }}
             className={`mb-3 rounded px-2 py-1 transition-colors ${
               prefs.highlightCurrentParagraph && i === activeIndex
-                ? "bg-white/10"
+                ? "bg-foreground/10"
                 : ""
             }`}
           >

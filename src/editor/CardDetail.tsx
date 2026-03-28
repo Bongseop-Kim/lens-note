@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCardStore } from "../store/useCardStore";
 import { Clock3, FileText, Trash2 } from "lucide-react";
 
+const KOREA_DATE_FORMAT = new Intl.DateTimeFormat("ko-KR", {
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return KOREA_DATE_FORMAT.format(new Date(value));
 }
 
 export default function CardDetail({
@@ -24,7 +26,8 @@ export default function CardDetail({
   const [body, setBody] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const pendingSaveRef = useRef<Promise<void> | null>(null);
-  const wordCount = useMemo(() => body.trim().split(/\s+/).filter(Boolean).length, [body]);
+  // Korean content is better represented by visible characters than whitespace-delimited words.
+  const wordCount = useMemo(() => body.trim().length, [body]);
 
   // Only reset on card switch, not on every card object update — prevents overwriting in-progress edits.
   useEffect(() => {
