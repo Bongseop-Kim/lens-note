@@ -42,8 +42,8 @@ export const DEFAULT_PREFS: Preferences = {
   overlayX: 0,
   overlayY: 0,
   hotkeys: {
-    next: "ArrowRight",
-    prev: "ArrowLeft",
+    next: "Ctrl+ArrowRight",
+    prev: "Ctrl+ArrowLeft",
     jump: "Ctrl+G",
     search: "Ctrl+F",
   },
