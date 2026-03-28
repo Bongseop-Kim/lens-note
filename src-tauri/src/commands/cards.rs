@@ -7,7 +7,6 @@ pub struct Card {
     pub id: String,
     pub title: String,
     pub body: String,
-    pub tags: Vec<String>,
     pub order: f64,
     pub created_at: String,
     pub updated_at: String,

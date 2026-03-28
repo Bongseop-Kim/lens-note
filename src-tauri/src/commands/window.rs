@@ -81,3 +81,59 @@ pub async fn set_overlay_bounds(
     }
     Ok(())
 }
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MonitorInfo {
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub x: i32,
+    pub y: i32,
+    pub scale_factor: f64,
+}
+
+#[tauri::command]
+pub fn get_monitors(app: tauri::AppHandle) -> Result<Vec<MonitorInfo>, String> {
+    Ok(app
+        .available_monitors()
+        .map_err(|e| format!("Failed to enumerate monitors: {e}"))?
+        .into_iter()
+        .map(|m| {
+            let size = m.size();
+            let pos = m.position();
+            MonitorInfo {
+                name: m.name().map_or("Monitor", |v| v).to_string(),
+                width: size.width,
+                height: size.height,
+                x: pos.x as i32,
+                y: pos.y as i32,
+                scale_factor: m.scale_factor(),
+            }
+        })
+        .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn monitor_info_logical_size() {
+        // Direct struct construction — verifies field layout and serde derive compile
+        // width/height/x/y are physical pixels; scale_factor is exported separately.
+        let info = MonitorInfo {
+            name: "Test".to_string(),
+            width: 1920,
+            height: 1080,
+            x: 0,
+            y: 0,
+            scale_factor: 2.0,
+        };
+        assert_eq!(info.width, 1920);
+        assert_eq!(info.scale_factor, 2.0);
+        // logical size = physical / scale_factor
+        let logical_w = (info.width as f64 / info.scale_factor) as u32;
+        assert_eq!(logical_w, 960);
+    }
+}

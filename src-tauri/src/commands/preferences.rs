@@ -15,7 +15,6 @@ pub struct HotkeyConfig {
     pub prev: String,
     pub jump: String,
     pub search: String,
-    pub toggle: String,
 }
 
 impl Default for HotkeyConfig {
@@ -25,7 +24,6 @@ impl Default for HotkeyConfig {
             prev: "ArrowLeft".into(),
             jump: "Ctrl+G".into(),
             search: "Ctrl+F".into(),
-            toggle: "Ctrl+Shift+P".into(),
         }
     }
 }
@@ -43,7 +41,6 @@ pub struct Preferences {
     pub hotkeys: HotkeyConfig,
     pub theme: Theme,
     pub highlight_current_paragraph: bool,
-    pub drag_locked: bool,
 }
 
 impl Default for Preferences {
@@ -59,7 +56,6 @@ impl Default for Preferences {
             hotkeys: HotkeyConfig::default(),
             theme: Theme::Dark,
             highlight_current_paragraph: true,
-            drag_locked: true,
         }
     }
 }

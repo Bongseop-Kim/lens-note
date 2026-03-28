@@ -13,7 +13,6 @@ export default function CardDetail({
   const card = cards.find((c) => c.id === cardId);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [tagInput, setTagInput] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const pendingSaveRef = useRef<Promise<void> | null>(null);
 
@@ -46,31 +45,11 @@ export default function CardDetail({
     onDelete?.();
   }
 
-  function enqueueTagUpdate(newTags: string[]) {
-    const p = (pendingSaveRef.current ?? Promise.resolve())
-      .then(() => updateCard(cardId, { tags: newTags }))
-      .catch((err) => { console.error("Failed to update tags:", err); })
-      .finally(() => { if (pendingSaveRef.current === p) pendingSaveRef.current = null; });
-    pendingSaveRef.current = p;
-  }
-
-  function addTag() {
-    const tag = tagInput.trim();
-    if (tag && !card!.tags.includes(tag)) {
-      enqueueTagUpdate([...card!.tags, tag]);
-    }
-    setTagInput("");
-  }
-
-  function removeTag(tag: string) {
-    enqueueTagUpdate(card!.tags.filter((t) => t !== tag));
-  }
-
   return (
-    <div className="flex flex-col gap-4 p-4 h-full">
+    <div className="flex flex-col gap-3 p-5 h-full">
       <div className="flex items-center justify-between">
         <input
-          className="flex-1 text-xl font-bold border-b-2 border-gray-300 focus:border-blue-500 outline-none pb-1"
+          className="flex-1 text-base font-semibold bg-transparent border-b border-border focus:border-foreground outline-none pb-1 transition-colors text-foreground placeholder:text-muted-foreground"
           value={title}
           onChange={(e) => { setTitle(e.target.value); setIsDirty(true); }}
           onBlur={handleSave}
@@ -78,44 +57,16 @@ export default function CardDetail({
         />
         <button
           type="button"
-          className="ml-4 text-red-400 hover:text-red-600"
+          className="ml-3 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           aria-label="Delete card"
           title="카드 삭제"
           onClick={() => { void handleDelete(); }}
         >
-          <Trash2 size={18} />
+          <Trash2 size={16} />
         </button>
       </div>
-      <div className="flex flex-wrap gap-2 items-center">
-        {card.tags.map((tag) => (
-          <span key={tag} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
-            {tag}
-            <button
-              type="button"
-              onClick={() => removeTag(tag)}
-              className="hover:text-red-500"
-              aria-label={`Remove tag ${tag}`}
-            >
-              ×
-            </button>
-          </span>
-        ))}
-        <input
-          className="border rounded px-2 py-0.5 text-xs w-24"
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              if (e.nativeEvent.isComposing) return;
-              e.preventDefault();
-              addTag();
-            }
-          }}
-          placeholder="태그 추가"
-        />
-      </div>
       <textarea
-        className="flex-1 p-3 border rounded resize-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+        className="flex-1 p-3 text-sm leading-relaxed resize-none rounded-md border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
         value={body}
         onChange={(e) => { setBody(e.target.value); setIsDirty(true); }}
         onBlur={handleSave}

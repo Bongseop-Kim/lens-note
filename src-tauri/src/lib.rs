@@ -11,12 +11,11 @@ use crate::commands::preferences::{HotkeyConfig, Preferences};
 #[derive(Default)]
 struct HotkeyBindings(Mutex<HashMap<u32, String>>);
 
-const HOTKEY_ACTIONS: [(&str, fn(&HotkeyConfig) -> &str); 5] = [
+const HOTKEY_ACTIONS: [(&str, fn(&HotkeyConfig) -> &str); 4] = [
     ("next", |config| config.next.as_str()),
     ("prev", |config| config.prev.as_str()),
     ("jump", |config| config.jump.as_str()),
     ("search", |config| config.search.as_str()),
-    ("toggle", |config| config.toggle.as_str()),
 ];
 
 pub(crate) fn register_configured_hotkeys(
@@ -71,14 +70,24 @@ pub(crate) fn register_configured_hotkeys(
     Ok(())
 }
 
+fn show_and_focus_editor(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("editor") {
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
+}
+
 fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
-    use tauri::menu::{Menu, MenuItem};
+    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
     use tauri::tray::TrayIconBuilder;
 
     let show_hide = MenuItem::with_id(app, "toggle_overlay", "Show/Hide Overlay", true, None::<&str>)?;
     let open_editor = MenuItem::with_id(app, "open_editor", "Open Editor", true, None::<&str>)?;
+    let position = MenuItem::with_id(app, "position", "위치 조정", true, None::<&str>)?;
+    let sep1 = PredefinedMenuItem::separator(app)?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_hide, &open_editor, &quit])?;
+    let menu = Menu::with_items(app, &[&show_hide, &open_editor, &sep1, &position, &sep2, &quit])?;
 
     let mut tray_builder = TrayIconBuilder::new()
         .menu(&menu)
@@ -93,10 +102,11 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
                 }
             }
             "open_editor" => {
-                if let Some(w) = app.get_webview_window("editor") {
-                    let _ = w.show();
-                    let _ = w.set_focus();
-                }
+                show_and_focus_editor(app);
+            }
+            "position" => {
+                show_and_focus_editor(app);
+                let _ = app.emit_to("editor", "navigate-to-position", ());
             }
             "quit" => app.exit(0),
             _ => {}
@@ -133,6 +143,18 @@ pub fn run() {
 
             if let Err(error) = setup_tray(app) {
                 eprintln!("Failed to set up tray: {error}");
+            }
+
+            // Hide the editor window on close instead of destroying it so that
+            // "Open Editor" from the tray can always show it again.
+            if let Some(editor) = app.get_webview_window("editor") {
+                let editor_handle = editor.clone();
+                editor.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = editor_handle.hide();
+                    }
+                });
             }
 
             let prefs = commands::preferences::load_prefs_sync(&app.handle());
@@ -182,6 +204,7 @@ pub fn run() {
             commands::preferences::read_prefs,
             commands::preferences::write_prefs,
             commands::window::set_overlay_bounds,
+            commands::window::get_monitors,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

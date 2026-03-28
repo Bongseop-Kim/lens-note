@@ -64,12 +64,12 @@ export default function CardDisplay() {
       style={{
         fontSize: `${prefs.fontSize}px`,
         lineHeight: prefs.lineHeight,
-        color: prefs.theme === "dark" ? "#f5f5f5" : "#1a1a1a",
+        color: "#f5f5f5",
       }}
     >
       {paragraphs.map((p, i) => (
         <p
-          key={i}
+          key={`para-${i}`}
           ref={(el) => { paragraphRefs.current[i] = el; }}
           className={`mb-3 px-1 rounded transition-colors ${
             prefs.highlightCurrentParagraph && i === activeIndex

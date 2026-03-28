@@ -27,17 +27,19 @@ function SortableCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 p-3 rounded cursor-pointer border ${
-        isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:bg-gray-50"
+      className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer border transition-colors ${
+        isSelected
+          ? "bg-accent border-border border-l-[3px] border-l-foreground"
+          : "bg-card border-border hover:bg-accent"
       }`}
       onClick={onSelect}
     >
-      <span {...attributes} {...listeners} className="cursor-grab text-gray-400">
+      <span {...attributes} {...listeners} className="cursor-grab text-muted-foreground/40 hover:text-muted-foreground transition-colors">
         <GripVertical size={16} />
       </span>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{card.title || "(제목 없음)"}</p>
-        <p className="text-sm text-gray-500 truncate">{card.body.slice(0, 50)}</p>
+        <p className="text-sm font-medium text-foreground truncate">{card.title || "(제목 없음)"}</p>
+        <p className="text-xs text-muted-foreground truncate">{card.body.slice(0, 50)}</p>
       </div>
     </div>
   );
@@ -66,7 +68,7 @@ export default function CardList({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
@@ -80,8 +82,9 @@ export default function CardList({
         </SortableContext>
       </DndContext>
       <button
-        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        onClick={() => addCard({ title: "", body: "", tags: [] })}
+        type="button"
+        className="mt-1 w-full h-8 text-xs text-muted-foreground border border-dashed border-border rounded-md hover:bg-accent hover:text-foreground transition-colors"
+        onClick={() => addCard({ title: "", body: "" })}
       >
         + 새 카드
       </button>

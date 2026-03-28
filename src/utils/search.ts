@@ -1,18 +1,15 @@
 import Fuse from "fuse.js";
 import { Card } from "../types";
+import { SEARCH_THRESHOLD } from "./constants";
 
 let fuse: Fuse<Card> | null = null;
 
 export function initSearch(cards: Card[]) {
   fuse = new Fuse(cards, {
     keys: ["title", "body"],
-    threshold: 0.4,
+    threshold: SEARCH_THRESHOLD,
     includeScore: true,
   });
-}
-
-export function resetSearch() {
-  fuse = null;
 }
 
 export function searchCards(query: string): Card[] {

@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
+import { FileText } from "lucide-react";
 import { checkAccessibilityPermission, requestAccessibilityPermission } from "tauri-plugin-macos-permissions-api";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useCardStore } from "../store/useCardStore";
 import { usePrefsStore } from "../store/usePrefsStore";
+import { useThemeClass } from "../hooks/useThemeClass";
 import { Card } from "../types";
 import CardList from "./CardList";
 import CardDetail from "./CardDetail";
 import Preferences from "./Preferences";
+import ZonePicker from "./ZonePicker";
 
 const isMacOS = /mac/i.test(navigator.userAgent);
 
@@ -26,16 +30,24 @@ function isCard(value: unknown): value is Card {
   return typeof candidate.id === "string"
     && typeof candidate.title === "string"
     && typeof candidate.body === "string"
-    && Array.isArray(candidate.tags)
     && typeof candidate.order === "number"
     && typeof candidate.createdAt === "string"
     && typeof candidate.updatedAt === "string";
 }
 
+function tabClass(active: boolean) {
+  return `px-4 h-9 text-sm font-medium transition-colors border-b-[1.5px] -mb-px ${
+    active
+      ? "border-foreground text-foreground"
+      : "border-transparent text-muted-foreground hover:text-foreground"
+  }`;
+}
+
 export default function EditorApp() {
+  useThemeClass();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [needsAccessibility, setNeedsAccessibility] = useState(false);
-  const [tab, setTab] = useState<"cards" | "preferences">("cards");
+  const [tab, setTab] = useState<"cards" | "preferences" | "position">("cards");
 
   useEffect(() => {
     if (!isMacOS) {
@@ -70,6 +82,14 @@ export default function EditorApp() {
     };
 
     void hydrate();
+
+    const unlistenNav = listen("navigate-to-position", () => {
+      setTab("position");
+    });
+
+    return () => {
+      unlistenNav.then((fn) => fn()).catch(console.error);
+    };
   }, []);
 
   async function exportCards() {
@@ -106,17 +126,14 @@ export default function EditorApp() {
   }
 
   return (
-    <div className="flex flex-col h-screen pt-8">
+    <div className="flex flex-col h-screen pt-9 bg-background text-foreground">
       {isMacOS && needsAccessibility && (
-        <div role="alert" className="fixed top-0 left-0 right-0 bg-yellow-400 text-yellow-900 px-4 py-2 flex items-center justify-between z-50 text-sm">
+        <div role="alert" className="fixed top-0 left-0 right-0 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-b border-amber-200 dark:border-amber-800 px-4 py-2 flex items-center justify-between z-50 text-sm">
           <span>단축키를 사용하려면 손쉬운 사용 권한이 필요합니다</span>
           <button
             type="button"
-            className="underline font-medium"
+            className="text-amber-700 dark:text-amber-400 font-medium hover:text-amber-900 dark:hover:text-amber-200"
             onClick={async () => {
-              if (!isMacOS) {
-                return;
-              }
               try {
                 await requestAccessibilityPermission();
                 const granted = await checkAccessibilityPermission();
@@ -134,33 +151,41 @@ export default function EditorApp() {
           </button>
         </div>
       )}
-      {/* 탭 바 */}
-      <div className="fixed top-0 left-0 right-0 flex border-b bg-white z-10">
+      <div className="fixed top-0 left-0 right-0 flex border-b border-border bg-background z-10" data-tauri-drag-region>
+        {/* macOS traffic light spacer (~80px) */}
+        <div className="w-20 shrink-0" data-tauri-drag-region />
         <button
           type="button"
-          className={`px-4 py-2 text-sm font-medium ${tab === "cards" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+          className={tabClass(tab === "cards")}
           onClick={() => setTab("cards")}
         >
           카드 편집
         </button>
         <button
           type="button"
-          className={`px-4 py-2 text-sm font-medium ${tab === "preferences" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+          className={tabClass(tab === "preferences")}
           onClick={() => setTab("preferences")}
         >
           환경설정
         </button>
+        <button
+          type="button"
+          className={tabClass(tab === "position")}
+          onClick={() => setTab("position")}
+        >
+          위치
+        </button>
         <div className="ml-auto flex items-center gap-2 px-3">
           <button
             type="button"
-            className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+            className="h-[22px] px-2.5 text-xs font-medium text-muted-foreground border border-border rounded-md bg-transparent hover:bg-accent hover:text-foreground transition-colors"
             onClick={() => importCards().catch(console.error)}
           >
             가져오기
           </button>
           <button
             type="button"
-            className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded"
+            className="h-[22px] px-2.5 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
             onClick={() => exportCards().catch(console.error)}
           >
             내보내기
@@ -170,7 +195,7 @@ export default function EditorApp() {
       {tab === "cards" ? (
         <div className="flex flex-1 overflow-hidden">
           {/* 사이드바: 카드 목록 */}
-          <div className="w-72 border-r overflow-y-auto p-3">
+          <div className="w-72 border-r border-border overflow-y-auto p-2 bg-muted/30">
             <CardList selectedId={selectedId} onSelect={setSelectedId} />
           </div>
           {/* 메인: 카드 상세 */}
@@ -178,15 +203,16 @@ export default function EditorApp() {
             {selectedId ? (
               <CardDetail cardId={selectedId} onDelete={() => setSelectedId(null)} />
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                카드를 선택하거나 새 카드를 추가하세요
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+                <FileText size={32} strokeWidth={1.5} />
+                <p className="text-sm">카드를 선택하거나 새 카드를 추가하세요</p>
               </div>
             )}
           </div>
         </div>
       ) : (
         <div className="overflow-y-auto">
-          <Preferences />
+          {tab === "position" ? <ZonePicker /> : <Preferences />}
         </div>
       )}
     </div>
