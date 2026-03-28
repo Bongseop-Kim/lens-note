@@ -1,70 +1,39 @@
-import { useEffect, useRef, useState } from "react";
-import { Camera } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import {
-  MonitorInfo,
-  MINIMAP_DISPLAY_WIDTH,
-  minimapScale,
-  DisplayRect,
-  displayRectToPhysicalBounds,
-  clampDisplayRect,
-} from "../utils/zonePickerMath";
 import { usePrefsStore } from "../store/usePrefsStore";
-
-const HANDLE_HIT = 10; // px radius around corner that triggers resize
-
-type Corner = "tl" | "tr" | "bl" | "br";
-
-const CORNER_CURSORS: Record<Corner, string> = {
-  tl: "nw-resize", tr: "ne-resize", bl: "sw-resize", br: "se-resize",
-};
-
-const CURSOR = {
-  default: "crosshair",
-  move: "move",
-  resize: "nwse-resize",
-} as const;
-
-type DragState =
-  | { type: "create"; ox: number; oy: number }
-  | { type: "move"; offX: number; offY: number }
-  | { type: "resize"; anchorX: number; anchorY: number };
-
-function nearCorner(px: number, py: number, r: DisplayRect): Corner | null {
-  const corners: Array<[Corner, number, number]> = [
-    ["tl", r.x,       r.y],
-    ["tr", r.x + r.w, r.y],
-    ["bl", r.x,       r.y + r.h],
-    ["br", r.x + r.w, r.y + r.h],
-  ];
-  for (const [corner, cx, cy] of corners) {
-    if (Math.abs(px - cx) <= HANDLE_HIT && Math.abs(py - cy) <= HANDLE_HIT) {
-      return corner;
-    }
-  }
-  return null;
-}
-
-function insideRect(px: number, py: number, r: DisplayRect): boolean {
-  return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
-}
-
-function anchorForCorner(corner: Corner, r: DisplayRect): { anchorX: number; anchorY: number } {
-  return {
-    anchorX: corner.includes("l") ? r.x + r.w : r.x,
-    anchorY: corner.includes("t") ? r.y + r.h : r.y,
-  };
-}
+import type { ZonePreset } from "../types";
+import GridCanvas from "./GridCanvas";
+import PresetPanel from "./PresetPanel";
+import {
+  type DisplayRect,
+  type MonitorInfo,
+  MINIMAP_DISPLAY_WIDTH,
+  MINIMAP_MAX_DISPLAY_HEIGHT,
+  clampDisplayRect,
+  displayRectToPhysicalBounds,
+  physicalBoundsToDisplayRect,
+  placementCanvasSize,
+} from "../utils/zonePickerMath";
+import {
+  calcGridDimensions,
+  displayRectToPresetRatio,
+  presetRatioToDisplayRect,
+} from "../utils/gridMath";
+import { BUILT_IN_PRESETS } from "../utils/presets";
 
 export default function ZonePicker() {
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeMonitorIdx, setActiveMonitorIdx] = useState(0);
-  const [selection, setSelection] = useState<DisplayRect | null>(null);
-  const [drag, setDrag] = useState<DragState | null>(null);
-  const [hoverCursor, setHoverCursor] = useState(CURSOR.default);
-  const mapRef = useRef<HTMLDivElement>(null);
+  const [selectionByMonitor, setSelectionByMonitor] = useState<
+    Record<number, DisplayRect | null>
+  >({});
+  const [activePresetKey, setActivePresetKey] = useState<string | null>(null);
+  const [collapsedByMonitor, setCollapsedByMonitor] = useState<
+    Record<number, boolean>
+  >({});
+  const { prefs, updatePrefs } = usePrefsStore();
 
   useEffect(() => {
     invoke<MonitorInfo[]>("get_monitors")
@@ -72,24 +41,84 @@ export default function ZonePicker() {
         setMonitors(result);
         setIsLoading(false);
       })
-      .catch((err) => {
-        setFetchError(String(err));
+      .catch((error) => {
+        setFetchError(String(error));
         setIsLoading(false);
       });
   }, []);
 
   const monitor = monitors[activeMonitorIdx];
+  const canvas = monitor
+    ? placementCanvasSize(monitor, MINIMAP_DISPLAY_WIDTH, MINIMAP_MAX_DISPLAY_HEIGHT)
+    : null;
 
-  function getMapXY(e: React.MouseEvent): { x: number; y: number } | null {
-    if (!mapRef.current) return null;
-    const rect = mapRef.current.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
+  useEffect(() => {
+    if (!monitor || !canvas) {
+      return;
+    }
 
-  function applySelection(r: DisplayRect) {
-    if (!monitor) return;
-    const bounds = displayRectToPhysicalBounds(r, monitor);
-    const { overlayX, overlayY, overlayWidth, overlayHeight } = usePrefsStore.getState().prefs;
+    setSelectionByMonitor((previous) => {
+      if (Object.prototype.hasOwnProperty.call(previous, activeMonitorIdx)) {
+        return previous;
+      }
+
+      const inBounds =
+        prefs.overlayWidth > 0 &&
+        prefs.overlayHeight > 0 &&
+        prefs.overlayX >= monitor.x &&
+        prefs.overlayY >= monitor.y &&
+        prefs.overlayX <= monitor.x + monitor.width &&
+        prefs.overlayY <= monitor.y + monitor.height;
+
+      if (!inBounds) {
+        return { ...previous, [activeMonitorIdx]: null };
+      }
+
+      const rect = clampDisplayRect(
+        physicalBoundsToDisplayRect(
+          {
+            x: prefs.overlayX,
+            y: prefs.overlayY,
+            width: prefs.overlayWidth,
+            height: prefs.overlayHeight,
+          },
+          monitor,
+          canvas.width,
+        ),
+        canvas.width,
+        canvas.height,
+      );
+
+      return { ...previous, [activeMonitorIdx]: rect };
+    });
+  }, [
+    activeMonitorIdx,
+    canvas,
+    monitor,
+    prefs.overlayHeight,
+    prefs.overlayWidth,
+    prefs.overlayX,
+    prefs.overlayY,
+  ]);
+
+  const presetsByMonitor = useMemo<ZonePreset[][]>(
+    () =>
+      monitors.map((m) => [
+        ...BUILT_IN_PRESETS,
+        ...prefs.customPresets.filter((p) => p.monitorName === m.name),
+      ]),
+    [monitors, prefs.customPresets],
+  );
+
+  function applySelectionForMonitor(
+    rect: DisplayRect,
+    currentMonitor: MonitorInfo,
+    currentCanvas: { width: number; height: number; scale: number },
+  ) {
+    const bounds = displayRectToPhysicalBounds(rect, currentMonitor, currentCanvas.width);
+    const { overlayX, overlayY, overlayWidth, overlayHeight } =
+      usePrefsStore.getState().prefs;
+
     invoke("set_overlay_bounds", {
       x: bounds.x,
       y: bounds.y,
@@ -97,15 +126,15 @@ export default function ZonePicker() {
       height: bounds.height,
     })
       .then(() =>
-        usePrefsStore.getState().updatePrefs({
+        updatePrefs({
           overlayX: bounds.x,
           overlayY: bounds.y,
           overlayWidth: bounds.width,
           overlayHeight: bounds.height,
-        })
+        }),
       )
-      .catch((err) => {
-        console.error("applySelection: reverting overlay bounds after prefs update failure", err);
+      .catch((error) => {
+        console.error("applySelection: reverting overlay bounds", error);
         invoke("set_overlay_bounds", {
           x: overlayX,
           y: overlayY,
@@ -115,177 +144,140 @@ export default function ZonePicker() {
       });
   }
 
-  function finalizeDrag() {
-    if (drag && selection && selection.w > 2 && selection.h > 2) {
-      applySelection(selection);
-    }
-    setDrag(null);
-  }
-
-  function handleMouseDown(e: React.MouseEvent) {
-    e.preventDefault();
-    const pt = getMapXY(e);
-    if (!pt || !monitor) return;
-
-    if (selection) {
-      const corner = nearCorner(pt.x, pt.y, selection);
-      if (corner) {
-        setDrag({ type: "resize", ...anchorForCorner(corner, selection) });
-        return;
-      }
-      if (insideRect(pt.x, pt.y, selection)) {
-        setDrag({ type: "move", offX: pt.x - selection.x, offY: pt.y - selection.y });
-        return;
-      }
-    }
-    setDrag({ type: "create", ox: pt.x, oy: pt.y });
-    setSelection({ x: pt.x, y: pt.y, w: 0, h: 0 });
-  }
-
-  function handleMouseMove(e: React.MouseEvent) {
-    const pt = getMapXY(e);
-    if (!pt) return;
-
-    if (!drag) {
-      if (selection) {
-        const corner = nearCorner(pt.x, pt.y, selection);
-        const next = corner ? CORNER_CURSORS[corner] : insideRect(pt.x, pt.y, selection) ? CURSOR.move : CURSOR.default;
-        if (next !== hoverCursor) setHoverCursor(next);
-      }
+  function handlePresetSelect(monitorIdx: number, preset: ZonePreset) {
+    const currentMonitor = monitors[monitorIdx];
+    if (!currentMonitor) {
       return;
     }
 
-    if (!monitor) return;
-    const scale = minimapScale(monitor);
-    const mapW = MINIMAP_DISPLAY_WIDTH;
-    const mapH = Math.round(monitor.height * scale);
+    const currentCanvas = placementCanvasSize(
+      currentMonitor,
+      MINIMAP_DISPLAY_WIDTH,
+      MINIMAP_MAX_DISPLAY_HEIGHT,
+    );
+    const { cols, rows } = calcGridDimensions(currentMonitor.width, currentMonitor.height);
+    const rect = presetRatioToDisplayRect(
+      preset.x,
+      preset.y,
+      preset.w,
+      preset.h,
+      cols,
+      rows,
+      currentCanvas.width,
+      currentCanvas.height,
+    );
 
-    if (drag.type === "create") {
-      setSelection(clampDisplayRect({
-        x: Math.min(drag.ox, pt.x),
-        y: Math.min(drag.oy, pt.y),
-        w: Math.abs(pt.x - drag.ox),
-        h: Math.abs(pt.y - drag.oy),
-      }, mapW, mapH));
-    } else if (drag.type === "move" && selection) {
-      setSelection(clampDisplayRect({
-        x: pt.x - drag.offX,
-        y: pt.y - drag.offY,
-        w: selection.w,
-        h: selection.h,
-      }, mapW, mapH));
-    } else if (drag.type === "resize") {
-      setSelection(clampDisplayRect({
-        x: Math.min(drag.anchorX, pt.x),
-        y: Math.min(drag.anchorY, pt.y),
-        w: Math.abs(pt.x - drag.anchorX),
-        h: Math.abs(pt.y - drag.anchorY),
-      }, mapW, mapH));
-    }
+    setActiveMonitorIdx(monitorIdx);
+    setSelectionByMonitor((previous) => ({ ...previous, [monitorIdx]: rect }));
+    setActivePresetKey(`${monitorIdx}:${preset.id}`);
+    applySelectionForMonitor(rect, currentMonitor, currentCanvas);
   }
 
-  function mapCursor(): string {
-    if (drag) {
-      if (drag.type === "move") return CURSOR.move;
-      if (drag.type === "resize") return CURSOR.resize;
+  function handleGridChange(rect: DisplayRect) {
+    setSelectionByMonitor((previous) => ({ ...previous, [activeMonitorIdx]: rect }));
+  }
+
+  function handleGridCommit(rect: DisplayRect) {
+    setActivePresetKey(null);
+    if (!monitor || !canvas) {
+      return;
     }
-    return hoverCursor;
+
+    applySelectionForMonitor(rect, monitor, canvas);
+  }
+
+  function handleAddPreset(monitorIdx: number, label: string) {
+    const selection = selectionByMonitor[monitorIdx];
+    const currentMonitor = monitors[monitorIdx];
+    if (!selection || !currentMonitor) {
+      return;
+    }
+
+    const currentCanvas = placementCanvasSize(
+      currentMonitor,
+      MINIMAP_DISPLAY_WIDTH,
+      MINIMAP_MAX_DISPLAY_HEIGHT,
+    );
+    const { cols, rows } = calcGridDimensions(currentMonitor.width, currentMonitor.height);
+    const ratio = displayRectToPresetRatio(
+      selection,
+      cols,
+      rows,
+      currentCanvas.width,
+      currentCanvas.height,
+    );
+
+    const newPreset: ZonePreset = {
+      id: crypto.randomUUID(),
+      label,
+      ...ratio,
+      builtIn: false,
+      monitorName: currentMonitor.name,
+    };
+
+    updatePrefs({
+      customPresets: [...prefs.customPresets, newPreset],
+    }).catch(console.error);
+  }
+
+  function handleDeletePreset(id: string) {
+    updatePrefs({
+      customPresets: prefs.customPresets.filter((preset) => preset.id !== id),
+    }).catch(console.error);
+
+    setActivePresetKey((current) => {
+      if (!current) {
+        return current;
+      }
+      return current.endsWith(`:${id}`) ? null : current;
+    });
+  }
+
+  function handleToggleCollapse(monitorIdx: number) {
+    setCollapsedByMonitor((previous) => ({
+      ...previous,
+      [monitorIdx]: !(previous[monitorIdx] ?? false),
+    }));
   }
 
   if (isLoading) {
-    return <div className="p-4 text-muted-foreground text-sm">모니터 정보를 불러오는 중...</div>;
-  }
-  if (fetchError) {
-    return <div className="p-4 text-destructive text-sm">모니터 정보를 불러오지 못했습니다: {fetchError}</div>;
-  }
-  if (!monitor) {
-    return <div className="p-4 text-muted-foreground text-sm">연결된 모니터가 없습니다.</div>;
+    return <div className="p-4 text-sm text-muted-foreground">모니터 정보를 불러오는 중...</div>;
   }
 
-  const scale = minimapScale(monitor);
-  const mapH = Math.round(monitor.height * scale);
-  const bounds = selection ? displayRectToPhysicalBounds(selection, monitor) : null;
+  if (fetchError) {
+    return (
+      <div className="p-4 text-sm text-destructive">
+        모니터 정보를 불러오지 못했습니다: {fetchError}
+      </div>
+    );
+  }
+
+  if (!monitor || !canvas) {
+    return <div className="p-4 text-sm text-muted-foreground">연결된 모니터가 없습니다.</div>;
+  }
+
+  const selection = selectionByMonitor[activeMonitorIdx] ?? null;
 
   return (
-    <div className="p-5 flex flex-col gap-4 max-w-xs">
-      <p className="text-xs text-muted-foreground">
-        모서리를 드래그해 크기 조절 · 내부를 드래그해 위치 이동
-      </p>
-
-      {monitors.length > 1 && (
-        <div className="flex gap-1">
-          {monitors.map((m, i) => (
-            <button
-              key={`${m.name}-${i}`}
-              type="button"
-              onClick={() => { setActiveMonitorIdx(i); setSelection(null); setDrag(null); setHoverCursor(CURSOR.default); }}
-              className={`h-[22px] px-2.5 text-xs rounded-md font-medium border transition-colors ${
-                i === activeMonitorIdx
-                  ? "bg-primary text-primary-foreground border-transparent"
-                  : "bg-transparent text-muted-foreground border-border hover:bg-accent"
-              }`}
-            >
-              {m.name || `모니터 ${i + 1}`}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="border border-border rounded-md overflow-hidden">
-        <div
-          ref={mapRef}
-          className="relative bg-zinc-900 select-none"
-          style={{ width: MINIMAP_DISPLAY_WIDTH, height: mapH, cursor: mapCursor() }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={finalizeDrag}
-          onMouseLeave={finalizeDrag}
-        >
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`,
-              backgroundSize: `${Math.round(MINIMAP_DISPLAY_WIDTH / 12)}px ${Math.round(mapH / 8)}px`,
-            }}
-          />
-
-          <div
-            className="absolute top-1.5 pointer-events-none text-zinc-600 flex justify-center"
-            style={{ left: MINIMAP_DISPLAY_WIDTH / 2 - 6 }}
-          >
-            <Camera size={12} />
-          </div>
-
-          <div className="absolute bottom-1 right-1.5 text-[9px] font-mono text-zinc-600 pointer-events-none">
-            {monitor.width}×{monitor.height}
-          </div>
-
-          {selection && selection.w > 0 && selection.h > 0 && (
-            <div
-              className="absolute border-[1.5px] border-amber-400 bg-amber-400/15 pointer-events-none"
-              style={{ left: selection.x, top: selection.y, width: selection.w, height: selection.h }}
-            >
-              {(["tl", "tr", "bl", "br"] as Corner[]).map((c) => (
-                <div
-                  key={c}
-                  className="absolute w-2 h-2 bg-amber-400 rounded-[2px]"
-                  style={{
-                    left:   c.includes("l") ? -4 : undefined,
-                    right:  c.includes("r") ? -4 : undefined,
-                    top:    c.includes("t") ? -4 : undefined,
-                    bottom: c.includes("b") ? -4 : undefined,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="px-2.5 py-2 border-t border-border text-[10px] font-mono text-muted-foreground">
-          {bounds
-            ? `X: ${Math.round(bounds.x / monitor.scaleFactor)}  Y: ${Math.round(bounds.y / monitor.scaleFactor)}  W: ${Math.round(bounds.width / monitor.scaleFactor)}  H: ${Math.round(bounds.height / monitor.scaleFactor)}  (논리px)`
-            : `${monitor.width}×${monitor.height}`}
-        </div>
+    <div className="flex h-full overflow-hidden">
+      <PresetPanel
+        monitors={monitors}
+        presetsByMonitor={presetsByMonitor}
+        activePresetKey={activePresetKey}
+        collapsedByMonitor={collapsedByMonitor}
+        onSelect={handlePresetSelect}
+        onAdd={handleAddPreset}
+        onDelete={handleDeletePreset}
+        onToggleCollapse={handleToggleCollapse}
+      />
+      <div className="flex flex-1 items-center justify-center overflow-auto bg-muted/20 p-6">
+        <GridCanvas
+          monitor={monitor}
+          canvas={canvas}
+          value={selection}
+          onChange={handleGridChange}
+          onCommit={handleGridCommit}
+        />
       </div>
     </div>
   );

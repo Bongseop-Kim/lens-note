@@ -5,6 +5,9 @@ export const HOTKEY_LABELS: Record<keyof HotkeyConfig, string> = {
   prev: "이전 카드",
   jump: "번호로 이동",
   search: "검색",
+  nextLine: "다음 단락",
+  prevLine: "이전 단락",
+  toggle: "오버레이 켜기/끄기",
 };
 
 const MODIFIER_KEYS = new Set(["Control", "Meta", "Alt", "Shift", "AltGraph"]);
@@ -27,7 +30,7 @@ export function normalizeKey(key: string): string {
 export function buildShortcutString(e: KeyboardEvent): string | null {
   if (isModifierKey(e.key)) return null;
   const parts: string[] = [];
-  if (e.metaKey) parts.push("Meta");
+  if (e.metaKey) parts.push("Super");
   if (e.ctrlKey) parts.push("Ctrl");
   if (e.altKey) parts.push("Alt");
   if (e.shiftKey) parts.push("Shift");

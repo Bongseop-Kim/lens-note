@@ -27,19 +27,27 @@ function SortableCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer border transition-colors ${
+      className={`group flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 transition-colors ${
         isSelected
-          ? "bg-accent border-border border-l-[3px] border-l-foreground"
-          : "bg-card border-border hover:bg-accent"
+          ? "border-border border-l-[3px] border-l-foreground bg-accent pl-[11px]"
+          : "border-border bg-card hover:bg-accent"
       }`}
       onClick={onSelect}
     >
-      <span {...attributes} {...listeners} className="cursor-grab text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+      <span
+        {...attributes}
+        {...listeners}
+        className="cursor-grab text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+      >
         <GripVertical size={16} />
       </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{card.title || "(제목 없음)"}</p>
-        <p className="text-xs text-muted-foreground truncate">{card.body.slice(0, 50)}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">
+          {card.title || "제목 없는 카드"}
+        </p>
+        <p className="mt-1 truncate text-xs leading-5 text-muted-foreground">
+          {card.body.trim() ? card.body.slice(0, 72) : "..."}
+        </p>
       </div>
     </div>
   );
@@ -52,7 +60,7 @@ export default function CardList({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  const { cards, reorderCards, addCard } = useCardStore();
+  const { cards, reorderCards } = useCardStore();
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -68,9 +76,12 @@ export default function CardList({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext
+        items={cards.map((c) => c.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="flex flex-col gap-1.5">
           {cards.map((card) => (
             <SortableCard
               key={card.id}
@@ -79,15 +90,8 @@ export default function CardList({
               onSelect={() => onSelect(card.id)}
             />
           ))}
-        </SortableContext>
-      </DndContext>
-      <button
-        type="button"
-        className="mt-1 w-full h-8 text-xs text-muted-foreground border border-dashed border-border rounded-md hover:bg-accent hover:text-foreground transition-colors"
-        onClick={() => addCard({ title: "", body: "" })}
-      >
-        + 새 카드
-      </button>
-    </div>
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 }

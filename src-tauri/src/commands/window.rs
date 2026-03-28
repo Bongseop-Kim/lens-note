@@ -59,6 +59,35 @@ pub fn configure_overlay_window(app: &tauri::AppHandle) {
 }
 
 #[tauri::command]
+pub async fn set_overlay_clickthrough(
+    app: tauri::AppHandle,
+    ignore: bool,
+) -> Result<(), String> {
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        overlay
+            .set_ignore_cursor_events(ignore)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+pub fn toggle_overlay_window(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("overlay") {
+        if w.is_visible().unwrap_or(false) {
+            let _ = w.hide();
+        } else {
+            let _ = w.show();
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn toggle_overlay(app: tauri::AppHandle) -> Result<(), String> {
+    toggle_overlay_window(&app);
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn set_overlay_bounds(
     app: tauri::AppHandle,
     x: f64,
@@ -132,7 +161,6 @@ mod tests {
         };
         assert_eq!(info.width, 1920);
         assert_eq!(info.scale_factor, 2.0);
-        // logical size = physical / scale_factor
         let logical_w = (info.width as f64 / info.scale_factor) as u32;
         assert_eq!(logical_w, 960);
     }

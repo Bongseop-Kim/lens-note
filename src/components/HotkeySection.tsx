@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { Keyboard, RotateCcw } from "lucide-react";
 import { HotkeyConfig, DEFAULT_PREFS } from "../types";
 import { HOTKEY_LABELS } from "../utils/hotkeys";
 import { usePrefsStore } from "../store/usePrefsStore";
 import HotkeyRow from "./HotkeyRow";
 import HotkeyRecorderModal from "./HotkeyRecorderModal";
 
-const HOTKEY_ACTIONS: (keyof HotkeyConfig)[] = ["next", "prev", "jump", "search"];
+const HOTKEY_ACTIONS: (keyof HotkeyConfig)[] = ["next", "prev", "nextLine", "prevLine", "jump", "search", "toggle"];
 
 export default function HotkeySection() {
   const { prefs, updatePrefs } = usePrefsStore();
@@ -26,16 +27,18 @@ export default function HotkeySection() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+          <Keyboard size={13} />
           단축키
         </span>
         <div className="flex-1 h-px bg-border" />
         <button
           type="button"
           onClick={handleReset}
-          className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors border border-border rounded-md px-2 py-1"
+          className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          기본값으로 초기화
+          <RotateCcw size={12} />
+          기본값
         </button>
       </div>
 

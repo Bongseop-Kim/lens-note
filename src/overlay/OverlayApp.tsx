@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { useCardStore } from "../store/useCardStore";
 import { usePrefsStore } from "../store/usePrefsStore";
 import CardDisplay from "./CardDisplay";
@@ -15,10 +17,24 @@ export default function OverlayApp() {
   const [jumpInput, setJumpInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Card[]>([]);
+  const [activeParagraphIndex, setActiveParagraphIndex] = useState(0);
+
+  const currentIndex = useCardStore((s) => s.currentIndex);
+  const card = cards[currentIndex];
+  const paragraphs = card ? card.body.split("\n").filter((p) => p.trim()) : [];
 
   useEffect(() => {
     initSearch(cards);
   }, [cards]);
+
+  const clickthrough = activePanel === null;
+  useEffect(() => {
+    invoke("set_overlay_clickthrough", { ignore: clickthrough }).catch(console.error);
+  }, [clickthrough]);
+
+  useEffect(() => {
+    setActiveParagraphIndex(0);
+  }, [currentIndex]);
 
   useEffect(() => {
     hydrate().catch(console.error);
@@ -26,13 +42,36 @@ export default function OverlayApp() {
 
     const unlistenPromise = listen<string>("hotkey-fired", (event) => {
       const id = event.payload;
+
       if (id === "jump") { setActivePanel("jump"); return; }
       if (id === "search") { setActivePanel("search"); return; }
+
+      if (id === "toggle") {
+        invoke("toggle_overlay").catch(console.error);
+        return;
+      }
+
+      if (id === "next_line") {
+        const { cards: c, currentIndex: ci } = useCardStore.getState();
+        const currentCard = c[ci];
+        if (!currentCard) return;
+        const paraCount = currentCard.body.split("\n").filter((p) => p.trim()).length;
+        setActiveParagraphIndex((idx) => (idx < paraCount - 1 ? idx + 1 : idx));
+        return;
+      }
+
+      if (id === "prev_line") {
+        setActiveParagraphIndex((idx) => (idx > 0 ? idx - 1 : idx));
+        return;
+      }
+
       const { currentIndex: idx, cards: c } = useCardStore.getState();
       if (id === "next" && idx < c.length - 1) {
         useCardStore.setState({ currentIndex: idx + 1 });
+        setActiveParagraphIndex(0);
       } else if (id === "prev" && idx > 0) {
         useCardStore.setState({ currentIndex: idx - 1 });
+        setActiveParagraphIndex(0);
       }
     });
 
@@ -57,18 +96,25 @@ export default function OverlayApp() {
         pointerEvents: "none",
       }}
     >
-      <CardDisplay />
+      <CardDisplay
+        paragraphs={paragraphs}
+        activeIndex={activeParagraphIndex}
+        cardTitle={card?.title ?? ""}
+        cardPosition={card ? `${currentIndex + 1}/${cards.length}` : ""}
+      />
 
       {activePanel === "jump" && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-black/50"
           style={{ pointerEvents: "auto" }}
         >
-          <div className="bg-gray-800 rounded p-4 flex gap-2 items-center">
-            <span className="text-white text-sm">카드 번호</span>
+          <div className="w-[320px] rounded-2xl border border-white/10 bg-black/80 p-5 text-white shadow-2xl backdrop-blur">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-white/45">Jump To Card</p>
+            <div className="mt-3 flex items-center gap-3">
+            <span className="text-sm text-white/78">#</span>
             <input
               autoFocus
-              className="bg-gray-700 text-white px-2 py-1 rounded w-16 text-center"
+              className="w-20 rounded-lg border border-white/10 bg-white/8 px-3 py-2 text-center text-white outline-none ring-0 placeholder:text-white/25"
               value={jumpInput}
               onChange={(e) => setJumpInput(e.target.value)}
               onKeyDown={(e) => {
@@ -84,6 +130,8 @@ export default function OverlayApp() {
               }}
               placeholder="1"
             />
+            </div>
+            <p className="mt-3 text-xs text-white/40">{cards.length}</p>
           </div>
         </div>
       )}
@@ -93,49 +141,55 @@ export default function OverlayApp() {
           className="absolute inset-0 flex flex-col items-center pt-8 bg-black/60"
           style={{ pointerEvents: "auto" }}
         >
-          <div className="bg-gray-800 rounded p-4 w-80 flex flex-col gap-2">
-            <input
-              autoFocus
-              className="bg-gray-700 text-white px-3 py-1.5 rounded w-full"
-              value={searchQuery}
-              placeholder="카드 검색..."
-              onChange={(e) => {
-                const nextQuery = e.target.value;
-                setSearchQuery(nextQuery);
-                if (!nextQuery.trim() || cards.length === 0) {
-                  setSearchResults([]);
-                  return;
-                }
-                try {
-                  setSearchResults(searchCards(nextQuery));
-                } catch {
-                  setSearchResults([]);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setActivePanel(null);
-                  setSearchQuery("");
-                  setSearchResults([]);
-                }
-              }}
-            />
-            <ul className="max-h-40 overflow-y-auto flex flex-col gap-1">
+          <div className="w-[360px] rounded-2xl border border-white/10 bg-black/80 p-4 shadow-2xl backdrop-blur">
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/8 px-3 py-2">
+              <Search size={14} className="text-white/45" />
+              <input
+                autoFocus
+                className="w-full bg-transparent text-white outline-none placeholder:text-white/30"
+                value={searchQuery}
+                placeholder="검색"
+                onChange={(e) => {
+                  const nextQuery = e.target.value;
+                  setSearchQuery(nextQuery);
+                  if (!nextQuery.trim() || cards.length === 0) {
+                    setSearchResults([]);
+                    return;
+                  }
+                  try {
+                    setSearchResults(searchCards(nextQuery));
+                  } catch {
+                    setSearchResults([]);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setActivePanel(null);
+                    setSearchQuery("");
+                    setSearchResults([]);
+                  }
+                }}
+              />
+            </div>
+            <ul className="mt-3 flex max-h-48 flex-col gap-2 overflow-y-auto">
               {searchResults.map((card) => (
                   <li
                     key={card.id}
                     role="button"
                     tabIndex={0}
-                    className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 cursor-pointer text-white text-sm"
+                    className="cursor-pointer rounded-xl border border-white/8 bg-white/6 px-3 py-2 text-sm text-white transition-colors hover:bg-white/12"
                     onClick={() => selectCard(card.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectCard(card.id); } }}
                   >
-                    <span className="font-medium">{card.title}</span>
-                    <span className="text-gray-400 ml-2 text-xs truncate">{card.body.slice(0, SEARCH_RESULT_PREVIEW_LENGTH)}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{card.title}</span>
+                      <span className="text-[11px] uppercase tracking-[0.18em] text-white/35">↵</span>
+                    </div>
+                    <p className="mt-1 truncate text-xs text-white/45">{card.body.slice(0, SEARCH_RESULT_PREVIEW_LENGTH)}</p>
                   </li>
                 ))}
               {searchQuery && searchResults.length === 0 && (
-                <li className="text-gray-500 text-sm px-2">결과 없음</li>
+                <li className="px-2 text-sm text-white/30">없음</li>
               )}
             </ul>
           </div>
