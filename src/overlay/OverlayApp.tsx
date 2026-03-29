@@ -39,6 +39,15 @@ export default function OverlayApp() {
   }, [currentIndex]);
 
   useEffect(() => {
+    setActiveParagraphIndex((current) => {
+      if (paragraphs.length === 0) {
+        return 0;
+      }
+      return Math.min(current, paragraphs.length - 1);
+    });
+  }, [paragraphs.length]);
+
+  useEffect(() => {
     hydrate().catch(console.error);
     hydratePrefs().catch(console.error);
 

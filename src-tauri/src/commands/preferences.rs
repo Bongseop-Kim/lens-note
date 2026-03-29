@@ -185,9 +185,6 @@ pub async fn write_prefs(
 ) -> Result<(), String> {
     let prefs = prefs.clamped();
     let saved_prefs = load_prefs_sync(&app);
-    if prefs.theme != saved_prefs.theme {
-        apply_editor_theme(&app, &prefs);
-    }
     if prefs.hotkeys != saved_prefs.hotkeys {
         if let Err(error) = crate::register_configured_hotkeys(&app, &prefs.hotkeys) {
             eprintln!("Failed to apply updated hotkeys: {error}");
@@ -197,6 +194,9 @@ pub async fn write_prefs(
     super::ensure_parent_dir(&path)?;
     let content = serde_json::to_string_pretty(&prefs).map_err(|e| e.to_string())?;
     super::atomic_write_json(&path, content).await?;
+    if prefs.theme != saved_prefs.theme {
+        apply_editor_theme(&app, &prefs);
+    }
     app.emit("prefs-updated", &PrefsUpdatedPayload { prefs, client_id })
         .map_err(|e: tauri::Error| e.to_string())?;
     Ok(())

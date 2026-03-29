@@ -6,8 +6,10 @@ import type { MonitorInfo } from "../utils/zonePickerMath";
 interface PresetPanelProps {
   monitors: MonitorInfo[];
   presetsByMonitor: ZonePreset[][];
+  activeMonitorIdx: number;
   activePresetKey: string | null;
   collapsedByMonitor: Record<number, boolean>;
+  onMonitorSelect: (monitorIdx: number) => void;
   onSelect: (monitorIdx: number, preset: ZonePreset) => void;
   onAdd: (monitorIdx: number, label: string) => void;
   onDelete: (id: string) => void;
@@ -49,8 +51,10 @@ function PresetThumbnail({
 export default function PresetPanel({
   monitors,
   presetsByMonitor,
+  activeMonitorIdx,
   activePresetKey,
   collapsedByMonitor,
+  onMonitorSelect,
   onSelect,
   onAdd,
   onDelete,
@@ -84,12 +88,20 @@ export default function PresetPanel({
         return (
           <div key={`${monitor.name}-${idx}`}>
             <div className="flex items-center gap-1 border-b border-border/80 px-3 py-2">
-              <span className="flex-1 truncate text-xs font-semibold text-foreground">
-                {monitor.name || `모니터 ${idx + 1}`}
-              </span>
-              <span className="text-[10px] text-muted-foreground">
-                {monitorOrientationLabel(monitor)}
-              </span>
+              <button
+                type="button"
+                onClick={() => onMonitorSelect(idx)}
+                className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded px-1 py-0.5 text-left transition-colors ${
+                  activeMonitorIdx === idx ? "bg-accent text-foreground" : "text-foreground hover:bg-accent/80"
+                }`}
+              >
+                <span className="truncate text-xs font-semibold">
+                  {monitor.name || `모니터 ${idx + 1}`}
+                </span>
+                <span className="shrink-0 text-[10px] text-muted-foreground">
+                  {monitorOrientationLabel(monitor)}
+                </span>
+              </button>
               <button
                 type="button"
                 onClick={() => onToggleCollapse(idx)}

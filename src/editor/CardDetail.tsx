@@ -9,8 +9,17 @@ const KOREA_DATE_FORMAT = new Intl.DateTimeFormat("ko-KR", {
   minute: "2-digit",
 });
 
-function formatDate(value: string) {
-  return KOREA_DATE_FORMAT.format(new Date(value));
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return KOREA_DATE_FORMAT.format(date);
 }
 
 export default function CardDetail({
@@ -27,7 +36,7 @@ export default function CardDetail({
   const [isDirty, setIsDirty] = useState(false);
   const pendingSaveRef = useRef<Promise<void> | null>(null);
   // Korean content is better represented by visible characters than whitespace-delimited words.
-  const wordCount = useMemo(() => body.trim().length, [body]);
+  const charCount = useMemo(() => body.trim().length, [body]);
 
   // Only reset on card switch, not on every card object update — prevents overwriting in-progress edits.
   useEffect(() => {
@@ -79,7 +88,7 @@ export default function CardDetail({
             </span>
             <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1">
               <FileText size={12} />
-              {wordCount}
+              {charCount}자
             </span>
           </div>
         </div>

@@ -105,7 +105,7 @@ export default function ZonePicker() {
     () =>
       monitors.map((m) => [
         ...BUILT_IN_PRESETS,
-        ...prefs.customPresets.filter((p) => p.monitorName === m.name),
+        ...prefs.customPresets.filter((p) => !p.monitorName || p.monitorName === m.name),
       ]),
     [monitors, prefs.customPresets],
   );
@@ -171,6 +171,10 @@ export default function ZonePicker() {
     setSelectionByMonitor((previous) => ({ ...previous, [monitorIdx]: rect }));
     setActivePresetKey(`${monitorIdx}:${preset.id}`);
     applySelectionForMonitor(rect, currentMonitor, currentCanvas);
+  }
+
+  function handleMonitorSelect(monitorIdx: number) {
+    setActiveMonitorIdx(monitorIdx);
   }
 
   function handleGridChange(rect: DisplayRect) {
@@ -263,8 +267,10 @@ export default function ZonePicker() {
       <PresetPanel
         monitors={monitors}
         presetsByMonitor={presetsByMonitor}
+        activeMonitorIdx={activeMonitorIdx}
         activePresetKey={activePresetKey}
         collapsedByMonitor={collapsedByMonitor}
+        onMonitorSelect={handleMonitorSelect}
         onSelect={handlePresetSelect}
         onAdd={handleAddPreset}
         onDelete={handleDeletePreset}
