@@ -36,3 +36,6 @@ pnpm-debug.log*
 # Superpowers
 .superpowers/
 superpowers/
+
+# Playwright
+.playwright-cli

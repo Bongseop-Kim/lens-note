@@ -1,4 +1,5 @@
-export const MINIMAP_DISPLAY_WIDTH = 240; // px width of mini-map display
+export const MINIMAP_DISPLAY_WIDTH = 420; // px width of placement canvas
+export const MINIMAP_MAX_DISPLAY_HEIGHT = 520; // px max height of placement canvas
 
 export interface MonitorInfo {
   name: string;
@@ -17,8 +18,22 @@ export interface PhysicalBounds {
 }
 
 /** Scale factor: minimap display px per monitor physical px */
-export function minimapScale(monitor: MonitorInfo): number {
-  return MINIMAP_DISPLAY_WIDTH / monitor.width;
+export function minimapScale(monitor: MonitorInfo, displayWidth = MINIMAP_DISPLAY_WIDTH): number {
+  const safeWidth = Math.max(1, monitor.width);
+  return displayWidth / safeWidth;
+}
+
+export function placementCanvasSize(
+  monitor: MonitorInfo,
+  maxWidth = MINIMAP_DISPLAY_WIDTH,
+  maxHeight = MINIMAP_MAX_DISPLAY_HEIGHT
+): { width: number; height: number; scale: number } {
+  const scale = Math.min(maxWidth / monitor.width, maxHeight / monitor.height);
+  return {
+    width: Math.max(1, Math.round(monitor.width * scale)),
+    height: Math.max(1, Math.round(monitor.height * scale)),
+    scale,
+  };
 }
 
 /** A selection rectangle in minimap display pixels */
@@ -35,14 +50,29 @@ export interface DisplayRect {
  */
 export function displayRectToPhysicalBounds(
   rect: DisplayRect,
-  monitor: MonitorInfo
+  monitor: MonitorInfo,
+  displayWidth = MINIMAP_DISPLAY_WIDTH
 ): PhysicalBounds {
-  const scale = minimapScale(monitor);
+  const scale = minimapScale(monitor, displayWidth);
   return {
     x: Math.round(rect.x / scale + monitor.x),
     y: Math.round(rect.y / scale + monitor.y),
     width: Math.round(rect.w / scale),
     height: Math.round(rect.h / scale),
+  };
+}
+
+export function physicalBoundsToDisplayRect(
+  bounds: PhysicalBounds,
+  monitor: MonitorInfo,
+  displayWidth = MINIMAP_DISPLAY_WIDTH
+): DisplayRect {
+  const scale = minimapScale(monitor, displayWidth);
+  return {
+    x: Math.round((bounds.x - monitor.x) * scale),
+    y: Math.round((bounds.y - monitor.y) * scale),
+    w: Math.round(bounds.width * scale),
+    h: Math.round(bounds.height * scale),
   };
 }
 

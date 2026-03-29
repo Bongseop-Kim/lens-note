@@ -8,10 +8,25 @@ export interface Card {
 }
 
 export interface HotkeyConfig {
-  next: string;   // default: "ArrowRight"
-  prev: string;   // default: "ArrowLeft"
-  jump: string;   // default: "Ctrl+G"
-  search: string; // default: "Ctrl+F"
+  next: string;
+  prev: string;
+  jump: string;
+  search: string;
+  nextLine: string;
+  prevLine: string;
+  toggle: string;
+}
+
+export interface ZonePreset {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  builtIn: boolean;
+  monitorId?: string;
+  monitorName?: string;
 }
 
 export interface Preferences {
@@ -23,8 +38,9 @@ export interface Preferences {
   overlayX: number;
   overlayY: number;
   hotkeys: HotkeyConfig;
-  theme: "dark" | "light";
+  theme: "system" | "dark" | "light";
   highlightCurrentParagraph: boolean;
+  customPresets: ZonePreset[];
 }
 
 export interface AppState {
@@ -42,11 +58,15 @@ export const DEFAULT_PREFS: Preferences = {
   overlayX: 0,
   overlayY: 0,
   hotkeys: {
-    next: "ArrowRight",
-    prev: "ArrowLeft",
+    next: "Ctrl+ArrowRight",
+    prev: "Ctrl+ArrowLeft",
     jump: "Ctrl+G",
     search: "Ctrl+F",
+    nextLine: "Ctrl+ArrowDown",
+    prevLine: "Ctrl+ArrowUp",
+    toggle: "Ctrl+Shift+O",
   },
-  theme: "dark",
+  theme: "system",
   highlightCurrentParagraph: true,
+  customPresets: [],
 };

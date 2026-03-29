@@ -1,6 +1,26 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCardStore } from "../store/useCardStore";
-import { Trash2 } from "lucide-react";
+import { Clock3, FileText, Trash2 } from "lucide-react";
+
+const KOREA_DATE_FORMAT = new Intl.DateTimeFormat("ko-KR", {
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return KOREA_DATE_FORMAT.format(date);
+}
 
 export default function CardDetail({
   cardId,
@@ -15,8 +35,9 @@ export default function CardDetail({
   const [body, setBody] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const pendingSaveRef = useRef<Promise<void> | null>(null);
+  const charCount = useMemo(() => (body ?? "").length, [body]);
 
-  // 다른 카드로 전환할 때만 로컬 상태 리셋 (card 객체 변경 시는 무시 — 편집 중 덮어쓰기 방지)
+  // Only reset on card switch, not on every card object update — prevents overwriting in-progress edits.
   useEffect(() => {
     if (card) {
       setTitle(card.title);
@@ -46,29 +67,50 @@ export default function CardDetail({
   }
 
   return (
-    <div className="flex flex-col gap-3 p-5 h-full">
-      <div className="flex items-center justify-between">
-        <input
-          className="flex-1 text-base font-semibold bg-transparent border-b border-border focus:border-foreground outline-none pb-1 transition-colors text-foreground placeholder:text-muted-foreground"
-          value={title}
-          onChange={(e) => { setTitle(e.target.value); setIsDirty(true); }}
-          onBlur={handleSave}
-          placeholder="카드 제목"
-        />
+    <div className="flex h-full flex-col gap-3 p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1 space-y-2">
+          <input
+            className="w-full border-b border-border bg-transparent pb-1 text-base font-semibold text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground"
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setIsDirty(true);
+            }}
+            onBlur={handleSave}
+            placeholder="질문 제목을 입력하세요"
+          />
+          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1">
+              <Clock3 size={12} />
+              {formatDate(card.updatedAt)}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1">
+              <FileText size={12} />
+              {charCount}자
+            </span>
+          </div>
+        </div>
         <button
           type="button"
-          className="ml-3 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          aria-label="Delete card"
+          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          aria-label="카드 삭제"
           title="카드 삭제"
-          onClick={() => { void handleDelete(); }}
+          onClick={() => {
+            void handleDelete();
+          }}
         >
           <Trash2 size={16} />
         </button>
       </div>
+
       <textarea
-        className="flex-1 p-3 text-sm leading-relaxed resize-none rounded-md border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+        className="min-h-0 flex-1 resize-none rounded-md border border-input bg-card p-3 text-sm leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
         value={body}
-        onChange={(e) => { setBody(e.target.value); setIsDirty(true); }}
+        onChange={(e) => {
+          setBody(e.target.value);
+          setIsDirty(true);
+        }}
         onBlur={handleSave}
         placeholder="답변 내용을 입력하세요..."
       />
