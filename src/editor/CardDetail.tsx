@@ -35,8 +35,7 @@ export default function CardDetail({
   const [body, setBody] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const pendingSaveRef = useRef<Promise<void> | null>(null);
-  // Korean content is better represented by visible characters than whitespace-delimited words.
-  const charCount = useMemo(() => body.trim().length, [body]);
+  const charCount = useMemo(() => (body ?? "").length, [body]);
 
   // Only reset on card switch, not on every card object update — prevents overwriting in-progress edits.
   useEffect(() => {
@@ -95,7 +94,7 @@ export default function CardDetail({
         <button
           type="button"
           className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-          aria-label="Delete card"
+          aria-label="카드 삭제"
           title="카드 삭제"
           onClick={() => {
             void handleDelete();

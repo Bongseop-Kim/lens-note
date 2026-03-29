@@ -21,6 +21,46 @@ import {
 } from "../utils/gridMath";
 import { BUILT_IN_PRESETS } from "../utils/presets";
 
+function getMonitorPresetId(monitor: MonitorInfo): string {
+  return `${monitor.x}:${monitor.y}:${monitor.width}:${monitor.height}:${monitor.scaleFactor}`;
+}
+
+function selectionForOverlayBounds(
+  overlay: Pick<
+    ReturnType<typeof usePrefsStore.getState>["prefs"],
+    "overlayX" | "overlayY" | "overlayWidth" | "overlayHeight"
+  >,
+  monitor: MonitorInfo,
+  canvas: { width: number; height: number },
+): DisplayRect | null {
+  const inBounds =
+    overlay.overlayWidth > 0 &&
+    overlay.overlayHeight > 0 &&
+    overlay.overlayX >= monitor.x &&
+    overlay.overlayY >= monitor.y &&
+    overlay.overlayX < monitor.x + monitor.width &&
+    overlay.overlayY < monitor.y + monitor.height;
+
+  if (!inBounds) {
+    return null;
+  }
+
+  return clampDisplayRect(
+    physicalBoundsToDisplayRect(
+      {
+        x: overlay.overlayX,
+        y: overlay.overlayY,
+        width: overlay.overlayWidth,
+        height: overlay.overlayHeight,
+      },
+      monitor,
+      canvas.width,
+    ),
+    canvas.width,
+    canvas.height,
+  );
+}
+
 export default function ZonePicker() {
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,32 +102,7 @@ export default function ZonePicker() {
         return previous;
       }
 
-      const inBounds =
-        prefs.overlayWidth > 0 &&
-        prefs.overlayHeight > 0 &&
-        prefs.overlayX >= monitor.x &&
-        prefs.overlayY >= monitor.y &&
-        prefs.overlayX < monitor.x + monitor.width &&
-        prefs.overlayY < monitor.y + monitor.height;
-
-      if (!inBounds) {
-        return { ...previous, [activeMonitorIdx]: null };
-      }
-
-      const rect = clampDisplayRect(
-        physicalBoundsToDisplayRect(
-          {
-            x: prefs.overlayX,
-            y: prefs.overlayY,
-            width: prefs.overlayWidth,
-            height: prefs.overlayHeight,
-          },
-          monitor,
-          canvas.width,
-        ),
-        canvas.width,
-        canvas.height,
-      );
+      const rect = selectionForOverlayBounds(prefs, monitor, canvas);
 
       return { ...previous, [activeMonitorIdx]: rect };
     });
@@ -105,43 +120,56 @@ export default function ZonePicker() {
     () =>
       monitors.map((m) => [
         ...BUILT_IN_PRESETS,
-        ...prefs.customPresets.filter((p) => !p.monitorName || p.monitorName === m.name),
+        ...prefs.customPresets.filter((preset) => {
+          if (preset.monitorId != null) {
+            return preset.monitorId === getMonitorPresetId(m);
+          }
+          if (preset.monitorName != null) {
+            return preset.monitorName === m.name;
+          }
+          return true;
+        }),
       ]),
     [monitors, prefs.customPresets],
   );
 
-  function applySelectionForMonitor(
+  async function applySelectionForMonitor(
     rect: DisplayRect,
     currentMonitor: MonitorInfo,
     currentCanvas: { width: number; height: number; scale: number },
   ) {
     const bounds = displayRectToPhysicalBounds(rect, currentMonitor, currentCanvas.width);
-    const { overlayX, overlayY, overlayWidth, overlayHeight } =
-      usePrefsStore.getState().prefs;
+    const { overlayX, overlayY, overlayWidth, overlayHeight } = usePrefsStore.getState().prefs;
+    const previousBounds = { overlayX, overlayY, overlayWidth, overlayHeight };
 
-    invoke("set_overlay_bounds", {
-      x: bounds.x,
-      y: bounds.y,
-      width: bounds.width,
-      height: bounds.height,
-    })
-      .then(() =>
-        updatePrefs({
-          overlayX: bounds.x,
-          overlayY: bounds.y,
-          overlayWidth: bounds.width,
-          overlayHeight: bounds.height,
-        }),
-      )
-      .catch((error) => {
-        console.error("applySelection: reverting overlay bounds", error);
-        invoke("set_overlay_bounds", {
-          x: overlayX,
-          y: overlayY,
-          width: overlayWidth,
-          height: overlayHeight,
-        }).catch(console.error);
+    try {
+      await invoke("set_overlay_bounds", {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
       });
+      await updatePrefs({
+        overlayX: bounds.x,
+        overlayY: bounds.y,
+        overlayWidth: bounds.width,
+        overlayHeight: bounds.height,
+      });
+    } catch (error) {
+      console.error("applySelection: reverting overlay bounds", error);
+      await invoke("set_overlay_bounds", {
+        x: previousBounds.overlayX,
+        y: previousBounds.overlayY,
+        width: previousBounds.overlayWidth,
+        height: previousBounds.overlayHeight,
+      }).catch((revertError) => {
+        console.error("applySelection: failed to revert backend overlay bounds", revertError);
+      });
+      await updatePrefs(previousBounds).catch((prefsError) => {
+        console.error("applySelection: failed to restore prefs state", prefsError);
+      });
+      throw error;
+    }
   }
 
   function handlePresetSelect(monitorIdx: number, preset: ZonePreset) {
@@ -166,11 +194,18 @@ export default function ZonePicker() {
       currentCanvas.width,
       currentCanvas.height,
     );
+    const previousPrefs = usePrefsStore.getState().prefs;
+    const rollbackRect = selectionForOverlayBounds(previousPrefs, currentMonitor, currentCanvas);
+    const previousPresetKey = activePresetKey;
 
     setActiveMonitorIdx(monitorIdx);
     setSelectionByMonitor((previous) => ({ ...previous, [monitorIdx]: rect }));
     setActivePresetKey(`${monitorIdx}:${preset.id}`);
-    applySelectionForMonitor(rect, currentMonitor, currentCanvas);
+    void applySelectionForMonitor(rect, currentMonitor, currentCanvas).catch((error) => {
+      setSelectionByMonitor((previous) => ({ ...previous, [monitorIdx]: rollbackRect }));
+      setActivePresetKey(previousPresetKey);
+      console.error("handlePresetSelect: restoring local selection", error);
+    });
   }
 
   function handleMonitorSelect(monitorIdx: number) {
@@ -182,12 +217,19 @@ export default function ZonePicker() {
   }
 
   function handleGridCommit(rect: DisplayRect) {
-    setActivePresetKey(null);
     if (!monitor || !canvas) {
       return;
     }
+    const previousPrefs = usePrefsStore.getState().prefs;
+    const rollbackRect = selectionForOverlayBounds(previousPrefs, monitor, canvas);
+    const previousPresetKey = activePresetKey;
 
-    applySelectionForMonitor(rect, monitor, canvas);
+    setActivePresetKey(null);
+    void applySelectionForMonitor(rect, monitor, canvas).catch((error) => {
+      setSelectionByMonitor((previous) => ({ ...previous, [activeMonitorIdx]: rollbackRect }));
+      setActivePresetKey(previousPresetKey);
+      console.error("handleGridCommit: restoring local selection", error);
+    });
   }
 
   function handleAddPreset(monitorIdx: number, label: string) {
@@ -216,6 +258,7 @@ export default function ZonePicker() {
       label,
       ...ratio,
       builtIn: false,
+      monitorId: getMonitorPresetId(currentMonitor),
       monitorName: currentMonitor.name,
     };
 
@@ -241,6 +284,13 @@ export default function ZonePicker() {
     setCollapsedByMonitor((previous) => ({
       ...previous,
       [monitorIdx]: !(previous[monitorIdx] ?? false),
+    }));
+  }
+
+  function handleSetCollapsed(monitorIdx: number, isCollapsed: boolean) {
+    setCollapsedByMonitor((previous) => ({
+      ...previous,
+      [monitorIdx]: isCollapsed,
     }));
   }
 
@@ -275,6 +325,7 @@ export default function ZonePicker() {
         onAdd={handleAddPreset}
         onDelete={handleDeletePreset}
         onToggleCollapse={handleToggleCollapse}
+        onSetCollapsed={handleSetCollapsed}
       />
       <div className="flex flex-1 items-center justify-center overflow-auto bg-muted/20 p-6">
         <GridCanvas

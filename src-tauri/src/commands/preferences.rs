@@ -46,6 +46,8 @@ pub struct ZonePreset {
     pub h: f64,
     pub built_in: bool,
     #[serde(default)]
+    pub monitor_id: Option<String>,
+    #[serde(default)]
     pub monitor_name: Option<String>,
 }
 
@@ -241,6 +243,7 @@ mod tests {
             w: 0.5,
             h: 0.5,
             built_in: false,
+            monitor_id: Some("0:0:1920:1080:2".to_string()),
             monitor_name: Some("Studio Display".to_string()),
         };
 
@@ -254,6 +257,10 @@ mod tests {
         assert_eq!(parsed.custom_presets[0].label, "My Zone");
         assert!(!parsed.custom_presets[0].built_in);
         assert_eq!(
+            parsed.custom_presets[0].monitor_id.as_deref(),
+            Some("0:0:1920:1080:2")
+        );
+        assert_eq!(
             parsed.custom_presets[0].monitor_name.as_deref(),
             Some("Studio Display")
         );
@@ -265,6 +272,7 @@ mod tests {
             r#"{"id":"test-id","label":"My Zone","x":0.0,"y":0.5,"w":0.5,"h":0.5,"builtIn":false}"#;
         let preset: ZonePreset = serde_json::from_str(json).unwrap();
 
+        assert_eq!(preset.monitor_id, None);
         assert_eq!(preset.monitor_name, None);
     }
 }

@@ -14,10 +14,15 @@ interface PresetPanelProps {
   onAdd: (monitorIdx: number, label: string) => void;
   onDelete: (id: string) => void;
   onToggleCollapse: (monitorIdx: number) => void;
+  onSetCollapsed: (monitorIdx: number, isCollapsed: boolean) => void;
 }
 
 function monitorOrientationLabel(monitor: MonitorInfo): string {
   return monitor.height > monitor.width ? "Vertical" : "Horizontal";
+}
+
+function monitorDisplayLabel(monitor: MonitorInfo, monitorIdx: number): string {
+  return monitor.name.trim().length > 0 ? monitor.name : `모니터 ${monitorIdx + 1}`;
 }
 
 function PresetThumbnail({
@@ -59,6 +64,7 @@ export default function PresetPanel({
   onAdd,
   onDelete,
   onToggleCollapse,
+  onSetCollapsed,
 }: PresetPanelProps) {
   const [addingForMonitor, setAddingForMonitor] = useState<number | null>(null);
   const [addLabel, setAddLabel] = useState("");
@@ -96,7 +102,7 @@ export default function PresetPanel({
                 }`}
               >
                 <span className="truncate text-xs font-semibold">
-                  {monitor.name || `모니터 ${idx + 1}`}
+                  {monitorDisplayLabel(monitor, idx)}
                 </span>
                 <span className="shrink-0 text-[10px] text-muted-foreground">
                   {monitorOrientationLabel(monitor)}
@@ -106,17 +112,26 @@ export default function PresetPanel({
                 type="button"
                 onClick={() => onToggleCollapse(idx)}
                 className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                aria-label={isCollapsed ? "모니터 섹션 펼치기" : "모니터 섹션 접기"}
+                title={isCollapsed ? "모니터 섹션 펼치기" : "모니터 섹션 접기"}
               >
+                <span className="sr-only">
+                  {isCollapsed ? "모니터 섹션 펼치기" : "모니터 섹션 접기"}
+                </span>
                 {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
               </button>
               <button
                 type="button"
                 onClick={() => {
+                  onSetCollapsed(idx, false);
                   setAddingForMonitor(idx);
                   setAddLabel("");
                 }}
                 className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                aria-label="프리셋 추가"
+                title="프리셋 추가"
               >
+                <span className="sr-only">프리셋 추가</span>
                 <Plus size={12} />
               </button>
             </div>
@@ -166,12 +181,15 @@ export default function PresetPanel({
                       <button
                         type="button"
                         onClick={() => onDelete(preset.id)}
-                        className={`mr-2 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 ${
+                        className={`mr-2 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
                           isActive
                             ? "text-background/80 hover:bg-background/10 hover:text-background"
                             : "text-destructive hover:bg-destructive/20"
                         }`}
+                        aria-label={`프리셋 삭제: ${preset.label}`}
+                        title={`프리셋 삭제: ${preset.label}`}
                       >
+                        <span className="sr-only">{`프리셋 삭제: ${preset.label}`}</span>
                         <Trash2 size={10} />
                       </button>
                     </div>

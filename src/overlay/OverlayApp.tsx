@@ -165,13 +165,14 @@ export default function OverlayApp() {
                 placeholder="검색"
                 onChange={(e) => {
                   const nextQuery = e.target.value;
+                  const trimmed = nextQuery.trim();
                   setSearchQuery(nextQuery);
-                  if (!nextQuery.trim() || cards.length === 0) {
+                  if (!trimmed || cards.length === 0) {
                     setSearchResults([]);
                     return;
                   }
                   try {
-                    setSearchResults(searchCards(nextQuery));
+                    setSearchResults(searchCards(trimmed));
                   } catch {
                     setSearchResults([]);
                   }
@@ -202,7 +203,7 @@ export default function OverlayApp() {
                     <p className="mt-1 truncate text-xs text-muted-foreground">{card.body.slice(0, SEARCH_RESULT_PREVIEW_LENGTH)}</p>
                   </li>
                 ))}
-              {searchQuery && searchResults.length === 0 && (
+              {searchQuery.trim() && searchResults.length === 0 && (
                 <li className="px-2 text-sm text-muted-foreground">없음</li>
               )}
             </ul>

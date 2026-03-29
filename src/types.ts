@@ -25,6 +25,7 @@ export interface ZonePreset {
   w: number;
   h: number;
   builtIn: boolean;
+  monitorId?: string;
   monitorName?: string;
 }
 
