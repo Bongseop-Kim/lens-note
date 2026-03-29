@@ -123,12 +123,12 @@ export default function EditorApp() {
       {isMacOS && needsAccessibility && (
         <div
           role="alert"
-          className="fixed top-0 left-0 right-0 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-b border-amber-200 dark:border-amber-800 px-4 py-2 flex items-center justify-between z-50 text-sm"
+          className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between border-b border-warning/30 bg-warning-muted px-4 py-2 text-sm text-warning-foreground"
         >
           <span>단축키를 사용하려면 손쉬운 사용 권한이 필요합니다</span>
           <button
             type="button"
-            className="text-amber-700 dark:text-amber-400 font-medium hover:text-amber-900 dark:hover:text-amber-200"
+            className="font-medium text-warning-foreground hover:opacity-80"
             onClick={async () => {
               try {
                 await requestAccessibilityPermission();

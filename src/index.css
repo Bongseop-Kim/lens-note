@@ -4,36 +4,57 @@
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #18181b;
-    --card: #ffffff;
-    --card-foreground: #18181b;
-    --muted: #f4f4f5;
-    --muted-foreground: #71717a;
-    --border: #e4e4e7;
-    --input: #e4e4e7;
-    --accent: #f4f4f5;
-    --accent-foreground: #18181b;
-    --primary: #18181b;
-    --primary-foreground: #fafafa;
-    --ring: #18181b;
-    --destructive: #ef4444;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 9%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 10% 9%;
+    --primary: 240 10% 9%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 240 10% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --radius: 0.375rem;
+
+    --warning: 45 93% 47%;
+    --warning-foreground: 26 83% 14%;
+    --warning-muted: 45 93% 47% / 0.15;
+
+    --success: 142 71% 45%;
+    --success-foreground: 138 76% 97%;
+    --success-muted: 142 71% 45% / 0.15;
+
+    --overlay-backdrop: 0 0% 0% / 0.6;
   }
+
   .dark {
     color-scheme: dark;
-    --background: #09090b;
-    --foreground: #fafafa;
-    --card: #09090b;
-    --card-foreground: #fafafa;
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    --border: #27272a;
-    --input: #27272a;
-    --accent: #18181b;
-    --accent-foreground: #fafafa;
-    --primary: #fafafa;
-    --primary-foreground: #09090b;
-    --ring: #fafafa;
-    --destructive: #f87171;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 4%;
+    --card-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --accent: 240 10% 9%;
+    --accent-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 10% 4%;
+    --ring: 0 0% 98%;
+    --destructive: 0 91% 71%;
+    --destructive-foreground: 0 0% 98%;
+    --warning: 45 93% 58%;
+    --warning-foreground: 26 83% 14%;
+    --warning-muted: 45 93% 58% / 0.15;
+    --success: 142 71% 55%;
+    --success-foreground: 138 76% 97%;
+    --success-muted: 142 71% 55% / 0.15;
+    --overlay-backdrop: 0 0% 0% / 0.6;
   }
 }

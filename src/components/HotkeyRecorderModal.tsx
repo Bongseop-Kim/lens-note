@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HotkeyConfig } from "../types";
 import {
   HOTKEY_LABELS,
@@ -21,6 +21,13 @@ interface HotkeyRecorderModalProps {
   onClose: () => void;
 }
 
+const displayVariant: Record<ModalState["kind"], string> = {
+  capturing: "border-ring bg-ring/10 text-ring animate-pulse",
+  invalid: "border-warning bg-warning-muted text-warning-foreground",
+  conflict: "border-destructive bg-destructive/10 text-destructive",
+  valid: "border-success bg-success-muted text-success-foreground",
+};
+
 export default function HotkeyRecorderModal({
   actionKey,
   allHotkeys,
@@ -28,6 +35,8 @@ export default function HotkeyRecorderModal({
   onClose,
 }: HotkeyRecorderModalProps) {
   const [modalState, setModalState] = useState<ModalState>({ kind: "capturing" });
+  const modalStateRef = useRef(modalState);
+  useEffect(() => { modalStateRef.current = modalState; });
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -38,16 +47,14 @@ export default function HotkeyRecorderModal({
         return;
       }
 
-      // 수식키만 눌린 경우 무시
       if (isModifierKey(e.key)) return;
 
-      // valid 상태에서 수식키 없는 Enter → 저장
       if (
         e.key === "Enter" &&
         !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey &&
-        modalState.kind === "valid"
+        modalStateRef.current.kind === "valid"
       ) {
-        onSave(modalState.shortcut);
+        onSave(modalStateRef.current.shortcut);
         return;
       }
 
@@ -69,17 +76,16 @@ export default function HotkeyRecorderModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [actionKey, allHotkeys, modalState, onClose, onSave]);
+  }, [actionKey, allHotkeys, onClose, onSave]);
 
   const label = HOTKEY_LABELS[actionKey];
+  const displayText = modalState.kind === "capturing" ? "키를 누르세요" : modalState.shortcut;
 
   return (
-    // backdrop
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay-backdrop"
       onClick={onClose}
     >
-      {/* modal panel */}
       <div
         className="w-64 rounded-2xl border border-border bg-background p-6 text-center shadow-xl"
         onClick={(e) => e.stopPropagation()}
@@ -88,52 +94,31 @@ export default function HotkeyRecorderModal({
           {label} 단축키
         </p>
 
-        {/* key display box */}
+        <div className={`mb-2 flex min-h-14 items-center justify-center rounded-lg border-2 px-3 py-3 font-mono text-sm ${displayVariant[modalState.kind]}`}>
+          {displayText}
+        </div>
+
         {modalState.kind === "capturing" && (
-          <>
-            <div className="mb-2 flex min-h-14 items-center justify-center rounded-lg border-2 border-ring bg-ring/10 px-3 py-3 font-mono text-sm text-ring animate-pulse">
-              키를 누르세요
-            </div>
-            <p className="mb-4 text-xs text-muted-foreground">
-              Ctrl · Alt · Cmd · Shift 포함 필수
-            </p>
-          </>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Ctrl · Alt · Cmd · Shift 포함 필수
+          </p>
         )}
-
         {modalState.kind === "invalid" && (
-          <>
-            <div className="mb-2 flex min-h-14 items-center justify-center rounded-lg border-2 border-yellow-600 bg-yellow-950/40 px-3 py-3 font-mono text-sm text-yellow-400">
-              {modalState.shortcut}
-            </div>
-            <p className="mb-4 text-xs text-yellow-500">
-              수식키(Ctrl·Alt·Cmd·Shift)가 필요합니다
-            </p>
-          </>
+          <p className="mb-4 text-xs text-warning">
+            수식키(Ctrl·Alt·Cmd·Shift)가 필요합니다
+          </p>
         )}
-
         {modalState.kind === "conflict" && (
-          <>
-            <div className="mb-2 flex min-h-14 items-center justify-center rounded-lg border-2 border-destructive bg-destructive/10 px-3 py-3 font-mono text-sm text-destructive">
-              {modalState.shortcut}
-            </div>
-            <p className="mb-4 text-xs text-destructive">
-              이미 '{HOTKEY_LABELS[modalState.conflictsWith]}'에서 사용 중
-            </p>
-          </>
+          <p className="mb-4 text-xs text-destructive">
+            이미 '{HOTKEY_LABELS[modalState.conflictsWith]}'에서 사용 중
+          </p>
         )}
-
         {modalState.kind === "valid" && (
-          <>
-            <div className="mb-2 flex min-h-14 items-center justify-center rounded-lg border-2 border-green-600 bg-green-950/40 px-3 py-3 font-mono text-sm text-green-400">
-              {modalState.shortcut}
-            </div>
-            <p className="mb-4 text-xs text-muted-foreground">
-              다시 누르면 변경됩니다
-            </p>
-          </>
+          <p className="mb-4 text-xs text-muted-foreground">
+            다시 누르면 변경됩니다
+          </p>
         )}
 
-        {/* action buttons */}
         <div className="flex gap-2">
           <button
             type="button"

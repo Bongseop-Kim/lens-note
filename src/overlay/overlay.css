@@ -1,0 +1,16 @@
+/*
+ * Overlay 전용 스타일
+ * 동적 값(fontSize, lineHeight, opacity)은 OverlayApp에서 inline style로 관리
+ */
+
+.overlay-panel-backdrop {
+  background-color: hsl(var(--overlay-backdrop));
+}
+
+.overlay-panel {
+  border-radius: calc(var(--radius) + 6px);
+  border: 1px solid hsl(var(--border) / 0.8);
+  background-color: hsl(var(--card) / 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}

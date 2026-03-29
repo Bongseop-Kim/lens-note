@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import "./overlay.css";
 import { useCardStore } from "../store/useCardStore";
 import { usePrefsStore } from "../store/usePrefsStore";
 import { useThemeClass } from "../hooks/useThemeClass";
@@ -48,8 +49,7 @@ export default function OverlayApp() {
   }, [paragraphs.length]);
 
   useEffect(() => {
-    hydrate().catch(console.error);
-    hydratePrefs().catch(console.error);
+    Promise.all([hydrate(), hydratePrefs()]).catch(console.error);
 
     const unlistenPromise = listen<string>("hotkey-fired", (event) => {
       const id = event.payload;
@@ -119,16 +119,16 @@ export default function OverlayApp() {
 
       {activePanel === "jump" && (
         <div
-          className="absolute inset-0 flex items-center justify-center bg-background/60"
+          className="overlay-panel-backdrop absolute inset-0 flex items-center justify-center"
           style={{ pointerEvents: "auto" }}
         >
-          <div className="w-[320px] rounded-2xl border border-border/80 bg-card/90 p-5 text-foreground shadow-2xl backdrop-blur">
+          <div className="overlay-panel w-[320px] p-5 text-foreground">
             <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Jump To Card</p>
             <div className="mt-3 flex items-center gap-3">
               <span className="text-sm text-muted-foreground">#</span>
               <input
                 autoFocus
-                className="w-20 rounded-lg border border-input bg-background/70 px-3 py-2 text-center text-foreground outline-none ring-0 placeholder:text-muted-foreground"
+                className="w-20 rounded-lg border border-input bg-background/70 px-3 py-2 text-center text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 value={jumpInput}
                 onChange={(e) => setJumpInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -152,15 +152,15 @@ export default function OverlayApp() {
 
       {activePanel === "search" && (
         <div
-          className="absolute inset-0 flex flex-col items-center bg-background/70 pt-8"
+          className="overlay-panel-backdrop absolute inset-0 flex flex-col items-center pt-8"
           style={{ pointerEvents: "auto" }}
         >
-          <div className="w-[360px] rounded-2xl border border-border/80 bg-card/90 p-4 shadow-2xl backdrop-blur">
+          <div className="overlay-panel w-[360px] p-4 shadow-2xl">
             <div className="mb-3 flex items-center gap-2 rounded-xl border border-input bg-background/70 px-3 py-2">
               <Search size={14} className="text-muted-foreground" />
               <input
                 autoFocus
-                className="w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
                 value={searchQuery}
                 placeholder="검색"
                 onChange={(e) => {

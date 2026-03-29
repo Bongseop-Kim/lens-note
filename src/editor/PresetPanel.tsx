@@ -34,14 +34,14 @@ function PresetThumbnail({
 }) {
   return (
     <div
-      className={`relative h-5 w-8 shrink-0 overflow-hidden rounded-[4px] border ${
+      className={`relative h-5 w-8 shrink-0 overflow-hidden rounded-md border ${
         isActive
           ? "border-foreground/25 bg-foreground/[0.08]"
           : "border-border/80 bg-muted/50"
       }`}
     >
       <div
-        className="absolute rounded-[2px] bg-blue-500"
+        className="absolute rounded-sm bg-primary"
         style={{
           left: `${preset.x * 100}%`,
           top: `${preset.y * 100}%`,
@@ -215,7 +215,7 @@ export default function PresetPanel({
                         }
                       }}
                       placeholder="이름"
-                      className="flex-1 rounded border border-input bg-background px-2 py-0.5 text-xs text-foreground focus:border-ring focus:outline-none"
+                      className="flex-1 rounded border border-input bg-background px-2 py-0.5 text-xs text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                     <button
                       type="submit"

@@ -70,7 +70,7 @@ export default function Preferences() {
               </span>
               <select
                 value={prefs.theme}
-                className="rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground focus:border-ring focus:outline-none"
+                className="rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 onChange={(e) => {
                   updatePrefs({
                     theme: e.target.value as "system" | "dark" | "light",
