@@ -32,6 +32,7 @@ export default function EditorSlider({
         max={max}
         value={[value]}
         onValueChange={([next]) => onChange(next ?? value)}
+        thumbAriaLabel={label}
         className="w-full"
       />
     </label>

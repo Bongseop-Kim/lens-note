@@ -32,9 +32,10 @@ export default function JumpPanel({
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 const n = parseInt(jumpInput, 10);
-                if (!Number.isNaN(n) && n >= 1 && n <= totalCards) {
-                  onJump(n - 1);
+                if (Number.isNaN(n) || n < 1 || n > totalCards) {
+                  return;
                 }
+                onJump(n - 1);
                 onClose();
               }
               if (e.key === "Escape") {

@@ -43,6 +43,7 @@ export default function EditorApp() {
   useThemeClass();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [needsAccessibility, setNeedsAccessibility] = useState(false);
+  const [isAddingSamples, setIsAddingSamples] = useState(false);
   const [tab, setTab] = useState<"cards" | "preferences" | "position">("cards");
   const cards = useCardStore((state) => state.cards);
   const addCard = useCardStore((state) => state.addCard);
@@ -91,6 +92,22 @@ export default function EditorApp() {
     for (const card of starterCards) {
       // Sequential writes keep order stable in persisted storage.
       await addCard(card);
+    }
+  }
+
+  async function addBlankCard() {
+    await addCard({ title: "", body: "" });
+  }
+
+  async function handleAddSampleCards() {
+    if (isAddingSamples) {
+      return;
+    }
+    setIsAddingSamples(true);
+    try {
+      await createStarterCards();
+    } finally {
+      setIsAddingSamples(false);
     }
   }
 
@@ -146,7 +163,7 @@ export default function EditorApp() {
                 <button
                   type="button"
                   className="flex h-8 w-full items-center justify-center gap-2 rounded-md border border-dashed border-border text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                  onClick={() => addCard({ title: "", body: "" }).catch(console.error)}
+                  onClick={() => addBlankCard().catch(console.error)}
                 >
                   <FilePlus2 size={14} />새 카드
                 </button>
@@ -162,8 +179,9 @@ export default function EditorApp() {
                 </div>
               ) : (
                 <CardEmptyState
-                  onAddSample={() => createStarterCards().catch(console.error)}
-                  onAddBlank={() => addCard({ title: "", body: "" }).catch(console.error)}
+                  onAddSample={() => handleAddSampleCards().catch(console.error)}
+                  onAddBlank={() => addBlankCard().catch(console.error)}
+                  isAddingSamples={isAddingSamples}
                 />
               )}
             </main>

@@ -18,10 +18,6 @@ export default function SearchPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Card[]>([]);
 
-  function handleClose() {
-    onClose();
-  }
-
   return (
     <div
       className="overlay-panel-backdrop absolute inset-0 flex flex-col items-center pt-8"
@@ -45,13 +41,17 @@ export default function SearchPanel({
               }
               try {
                 setSearchResults(searchCards(trimmed));
-              } catch {
+              } catch (error) {
+                console.error("searchCards failed for query", {
+                  error,
+                  query: trimmed,
+                });
                 setSearchResults([]);
               }
             }}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
-                handleClose();
+                onClose();
               }
             }}
           />

@@ -3,11 +3,13 @@ import { FilePlus2, Sparkles } from "lucide-react";
 interface CardEmptyStateProps {
   onAddSample: () => void;
   onAddBlank: () => void;
+  isAddingSamples?: boolean;
 }
 
 export default function CardEmptyState({
   onAddSample,
   onAddBlank,
+  isAddingSamples = false,
 }: CardEmptyStateProps) {
   return (
     <div className="flex h-full items-center justify-center px-10">
@@ -24,11 +26,12 @@ export default function CardEmptyState({
         <div className="mt-8 flex flex-wrap gap-3">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-60"
             onClick={onAddSample}
+            disabled={isAddingSamples}
           >
             <Sparkles size={16} />
-            샘플 카드 3개 추가
+            {isAddingSamples ? "샘플 카드 추가 중..." : "샘플 카드 3개 추가"}
           </button>
           <button
             type="button"

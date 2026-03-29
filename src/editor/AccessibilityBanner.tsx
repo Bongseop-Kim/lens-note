@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   checkAccessibilityPermission,
   requestAccessibilityPermission,
@@ -11,6 +12,77 @@ interface AccessibilityBannerProps {
 export default function AccessibilityBanner({
   onGranted,
 }: AccessibilityBannerProps) {
+  const cleanupRef = useRef<null | (() => void)>(null);
+
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+    };
+  }, []);
+
+  async function startPermissionWatch() {
+    cleanupRef.current?.();
+
+    const timeoutMs = 5000;
+    const pollMs = 500;
+    let active = true;
+
+    const cleanup = () => {
+      active = false;
+      window.removeEventListener("focus", handleCheck);
+      document.removeEventListener("visibilitychange", handleCheck);
+      window.clearInterval(intervalId);
+      window.clearTimeout(timeoutId);
+      cleanupRef.current = null;
+    };
+
+    const handleCheck = async () => {
+      if (!active) {
+        return;
+      }
+
+      try {
+        const granted = await checkAccessibilityPermission();
+        if (granted) {
+          cleanup();
+          onGranted();
+        }
+      } catch (error) {
+        cleanup();
+        if (isPluginUnavailableError(error)) {
+          console.warn(
+            "Accessibility permission request is unavailable on this platform",
+            error,
+          );
+          return;
+        }
+        console.error("Failed to re-check accessibility permission", error);
+      }
+    };
+
+    window.addEventListener("focus", handleCheck, { once: true });
+    document.addEventListener("visibilitychange", handleCheck, { once: true });
+
+    const intervalId = window.setInterval(() => {
+      if (!active) {
+        return;
+      }
+      if (document.visibilityState === "visible") {
+        void handleCheck();
+      }
+    }, pollMs);
+
+    const timeoutId = window.setTimeout(() => {
+      if (active) {
+        cleanup();
+      }
+    }, timeoutMs);
+
+    cleanupRef.current = cleanup;
+    await handleCheck();
+  }
+
   return (
     <div
       role="alert"
@@ -23,8 +95,7 @@ export default function AccessibilityBanner({
         onClick={async () => {
           try {
             await requestAccessibilityPermission();
-            const granted = await checkAccessibilityPermission();
-            if (granted) onGranted();
+            await startPermissionWatch();
           } catch (error) {
             if (isPluginUnavailableError(error)) {
               console.warn(
