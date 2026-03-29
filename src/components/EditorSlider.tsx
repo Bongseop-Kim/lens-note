@@ -1,3 +1,5 @@
+import { Slider } from "./ui/slider";
+
 interface EditorSliderProps {
   label: string;
   min: number;
@@ -25,13 +27,13 @@ export default function EditorSlider({
           {displayValue}
         </span>
       </div>
-      <input
-        type="range"
+      <Slider
         min={min}
         max={max}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full cursor-pointer accent-foreground"
+        value={[value]}
+        onValueChange={([next]) => onChange(next ?? value)}
+        thumbAriaLabel={label}
+        className="w-full"
       />
     </label>
   );

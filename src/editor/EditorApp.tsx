@@ -1,33 +1,20 @@
 import { useEffect, useState } from "react";
-import {
-  FilePlus2,
-  LayoutPanelTop,
-  MapPinned,
-  Settings2,
-  Sparkles,
-} from "lucide-react";
-import {
-  checkAccessibilityPermission,
-  requestAccessibilityPermission,
-} from "tauri-plugin-macos-permissions-api";
+import { FilePlus2, LayoutPanelTop, MapPinned, Settings2 } from "lucide-react";
+import { checkAccessibilityPermission } from "tauri-plugin-macos-permissions-api";
 import { listen } from "@tauri-apps/api/event";
 import { useCardStore } from "../store/useCardStore";
 import { usePrefsStore } from "../store/usePrefsStore";
 import { useThemeClass } from "../hooks/useThemeClass";
 import { Card } from "../types";
+import { isPluginUnavailableError } from "../utils/errors";
+import AccessibilityBanner from "./AccessibilityBanner";
 import CardList from "./CardList";
 import CardDetail from "./CardDetail";
+import CardEmptyState from "./CardEmptyState";
 import Preferences from "./Preferences";
 import ZonePicker from "./ZonePicker";
 
 const isMacOS = /mac/i.test(navigator.userAgent);
-
-function isPluginUnavailableError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  return /not available|plugin.*(missing|not found|not initialized)|unsupported/i.test(
-    message,
-  );
-}
 
 function tabClass(active: boolean) {
   return `inline-flex h-9 items-center justify-center border-b-[1.5px] px-3 text-sm font-medium transition-colors -mb-px ${
@@ -56,6 +43,7 @@ export default function EditorApp() {
   useThemeClass();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [needsAccessibility, setNeedsAccessibility] = useState(false);
+  const [isAddingSamples, setIsAddingSamples] = useState(false);
   const [tab, setTab] = useState<"cards" | "preferences" | "position">("cards");
   const cards = useCardStore((state) => state.cards);
   const addCard = useCardStore((state) => state.addCard);
@@ -72,10 +60,7 @@ export default function EditorApp() {
       })
       .catch((error) => {
         if (isPluginUnavailableError(error)) {
-          console.warn(
-            "Accessibility permission API is unavailable on this platform",
-            error,
-          );
+          console.warn("Accessibility permission API is unavailable on this platform", error);
           return;
         }
         console.error("Failed to check accessibility permission", error);
@@ -85,15 +70,10 @@ export default function EditorApp() {
   useEffect(() => {
     const hydrate = async () => {
       try {
-        await Promise.all([
-          useCardStore.getState().hydrate(),
-          usePrefsStore.getState().hydrate(),
-        ]);
+        await Promise.all([useCardStore.getState().hydrate(), usePrefsStore.getState().hydrate()]);
       } catch (error) {
         console.error("Failed to hydrate editor state", error);
-        window.alert(
-          "Failed to load saved data. Default state will be used where possible.",
-        );
+        window.alert("Failed to load saved data. Default state will be used where possible.");
       }
     };
 
@@ -115,43 +95,27 @@ export default function EditorApp() {
     }
   }
 
-  const selectedCard = selectedId
-    ? (cards.find((card) => card.id === selectedId) ?? null)
-    : null;
+  async function addBlankCard() {
+    await addCard({ title: "", body: "" });
+  }
+
+  async function handleAddSampleCards() {
+    if (isAddingSamples) {
+      return;
+    }
+    setIsAddingSamples(true);
+    try {
+      await createStarterCards();
+    } finally {
+      setIsAddingSamples(false);
+    }
+  }
+
+  const selectedCard = selectedId ? (cards.find((card) => card.id === selectedId) ?? null) : null;
   return (
     <div className="flex h-screen flex-col bg-background pt-9 text-foreground">
       {isMacOS && needsAccessibility && (
-        <div
-          role="alert"
-          className="fixed top-0 left-0 right-0 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-b border-amber-200 dark:border-amber-800 px-4 py-2 flex items-center justify-between z-50 text-sm"
-        >
-          <span>단축키를 사용하려면 손쉬운 사용 권한이 필요합니다</span>
-          <button
-            type="button"
-            className="text-amber-700 dark:text-amber-400 font-medium hover:text-amber-900 dark:hover:text-amber-200"
-            onClick={async () => {
-              try {
-                await requestAccessibilityPermission();
-                const granted = await checkAccessibilityPermission();
-                if (granted) setNeedsAccessibility(false);
-              } catch (error) {
-                if (isPluginUnavailableError(error)) {
-                  console.warn(
-                    "Accessibility permission request is unavailable on this platform",
-                    error,
-                  );
-                  return;
-                }
-                console.error(
-                  "Failed to request accessibility permission",
-                  error,
-                );
-              }
-            }}
-          >
-            설정 열기
-          </button>
-        </div>
+        <AccessibilityBanner onGranted={() => setNeedsAccessibility(false)} />
       )}
       <div
         className="fixed left-0 right-0 top-0 z-10 flex h-9 border-b border-border bg-background"
@@ -199,9 +163,7 @@ export default function EditorApp() {
                 <button
                   type="button"
                   className="flex h-8 w-full items-center justify-center gap-2 rounded-md border border-dashed border-border text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                  onClick={() =>
-                    addCard({ title: "", body: "" }).catch(console.error)
-                  }
+                  onClick={() => addBlankCard().catch(console.error)}
                 >
                   <FilePlus2 size={14} />새 카드
                 </button>
@@ -216,47 +178,21 @@ export default function EditorApp() {
                   />
                 </div>
               ) : (
-                <div className="flex h-full items-center justify-center px-10">
-                  <div className="w-full max-w-xl rounded-lg border border-border bg-card p-8">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Editor
-                    </p>
-                    <h2 className="mt-4 text-3xl font-semibold tracking-tight text-foreground">
-                      바로 읽을 답변만 남깁니다.
-                    </h2>
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      왼쪽에서 카드를 고르거나 새 카드를 추가해 편집을
-                      시작하세요.
-                    </p>
-                    <div className="mt-8 flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-                        onClick={() =>
-                          createStarterCards().catch(console.error)
-                        }
-                      >
-                        <Sparkles size={16} />
-                        샘플 카드 3개 추가
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-                        onClick={() =>
-                          addCard({ title: "", body: "" }).catch(console.error)
-                        }
-                      >
-                        <FilePlus2 size={16} />빈 카드로 시작
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <CardEmptyState
+                  onAddSample={() => handleAddSampleCards().catch(console.error)}
+                  onAddBlank={() => addBlankCard().catch(console.error)}
+                  isAddingSamples={isAddingSamples}
+                />
               )}
             </main>
           </div>
+        ) : tab === "position" ? (
+          <div className="h-full overflow-hidden">
+            <ZonePicker />
+          </div>
         ) : (
           <div className="h-full overflow-y-auto">
-            {tab === "position" ? <ZonePicker /> : <Preferences />}
+            <Preferences />
           </div>
         )}
       </div>

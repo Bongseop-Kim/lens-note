@@ -28,20 +28,24 @@ function monitorDisplayLabel(monitor: MonitorInfo, monitorIdx: number): string {
 function PresetThumbnail({
   preset,
   isActive,
+  vertical,
 }: {
   preset: ZonePreset;
   isActive: boolean;
+  vertical: boolean;
 }) {
   return (
     <div
-      className={`relative h-5 w-8 shrink-0 overflow-hidden rounded-[4px] border ${
+      className={`relative shrink-0 overflow-hidden rounded-md border ${
+        vertical ? "h-8 w-5" : "h-5 w-8"
+      } ${
         isActive
           ? "border-foreground/25 bg-foreground/[0.08]"
           : "border-border/80 bg-muted/50"
       }`}
     >
       <div
-        className="absolute rounded-[2px] bg-blue-500"
+        className="absolute rounded-sm bg-primary"
         style={{
           left: `${preset.x * 100}%`,
           top: `${preset.y * 100}%`,
@@ -90,6 +94,7 @@ export default function PresetPanel({
         const builtIns = presets.filter((preset) => preset.builtIn);
         const customs = presets.filter((preset) => !preset.builtIn);
         const isCollapsed = collapsedByMonitor[idx] ?? false;
+        const isVertical = monitor.height > monitor.width;
 
         return (
           <div key={`${monitor.name}-${idx}`}>
@@ -151,7 +156,7 @@ export default function PresetPanel({
                           : "border-l-transparent text-foreground hover:bg-accent/80"
                       }`}
                     >
-                      <PresetThumbnail preset={preset} isActive={isActive} />
+                      <PresetThumbnail preset={preset} isActive={isActive} vertical={isVertical} />
                       <span className="truncate">{preset.label}</span>
                     </button>
                   );
@@ -175,7 +180,6 @@ export default function PresetPanel({
                         onClick={() => onSelect(idx, preset)}
                         className="flex flex-1 items-center gap-2.5 px-3 py-1.5 text-left text-xs text-foreground"
                       >
-                        <PresetThumbnail preset={preset} isActive={isActive} />
                         <span className="truncate">{preset.label}</span>
                       </button>
                       <button
@@ -215,7 +219,7 @@ export default function PresetPanel({
                         }
                       }}
                       placeholder="이름"
-                      className="flex-1 rounded border border-input bg-background px-2 py-0.5 text-xs text-foreground focus:border-ring focus:outline-none"
+                      className="flex-1 rounded border border-input bg-background px-2 py-0.5 text-xs text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                     <button
                       type="submit"
