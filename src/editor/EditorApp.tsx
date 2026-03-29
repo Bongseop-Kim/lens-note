@@ -168,9 +168,13 @@ export default function EditorApp() {
               )}
             </main>
           </div>
+        ) : tab === "position" ? (
+          <div className="h-full overflow-hidden">
+            <ZonePicker />
+          </div>
         ) : (
           <div className="h-full overflow-y-auto">
-            {tab === "position" ? <ZonePicker /> : <Preferences />}
+            <Preferences />
           </div>
         )}
       </div>

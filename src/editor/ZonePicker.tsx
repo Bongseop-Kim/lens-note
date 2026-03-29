@@ -25,6 +25,10 @@ function getMonitorPresetId(monitor: MonitorInfo): string {
   return `${monitor.x}:${monitor.y}:${monitor.width}:${monitor.height}:${monitor.scaleFactor}`;
 }
 
+function monitorKey(monitor: MonitorInfo, idx: number): string {
+  return `${getMonitorPresetId(monitor)}#${idx}`;
+}
+
 function selectionForOverlayBounds(
   overlay: Pick<
     ReturnType<typeof usePrefsStore.getState>["prefs"],
@@ -118,11 +122,13 @@ export default function ZonePicker() {
 
   const presetsByMonitor = useMemo<ZonePreset[][]>(
     () =>
-      monitors.map((m) => [
+      monitors.map((m, idx) => [
         ...BUILT_IN_PRESETS,
         ...prefs.customPresets.filter((preset) => {
           if (preset.monitorId != null) {
-            return preset.monitorId === getMonitorPresetId(m);
+            if (preset.monitorId === monitorKey(m, idx)) return true;
+            if (!preset.monitorId.includes("#") && preset.monitorId === getMonitorPresetId(m)) return true;
+            return false;
           }
           if (preset.monitorName != null) {
             return preset.monitorName === m.name;
@@ -233,9 +239,8 @@ export default function ZonePicker() {
   }
 
   function handleAddPreset(monitorIdx: number, label: string) {
-    const selection = selectionByMonitor[monitorIdx];
     const currentMonitor = monitors[monitorIdx];
-    if (!selection || !currentMonitor) {
+    if (!currentMonitor) {
       return;
     }
 
@@ -244,6 +249,12 @@ export default function ZonePicker() {
       MINIMAP_DISPLAY_WIDTH,
       MINIMAP_MAX_DISPLAY_HEIGHT,
     );
+
+    const selection =
+      selectionByMonitor[monitorIdx] ??
+      selectionForOverlayBounds(prefs, currentMonitor, currentCanvas) ??
+      { x: 0, y: 0, w: currentCanvas.width, h: currentCanvas.height };
+
     const { cols, rows } = calcGridDimensions(currentMonitor.width, currentMonitor.height);
     const ratio = displayRectToPresetRatio(
       selection,
@@ -258,7 +269,7 @@ export default function ZonePicker() {
       label,
       ...ratio,
       builtIn: false,
-      monitorId: getMonitorPresetId(currentMonitor),
+      monitorId: monitorKey(currentMonitor, monitorIdx),
       monitorName: currentMonitor.name,
     };
 
