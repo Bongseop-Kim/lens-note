@@ -15,8 +15,7 @@ export default function JumpPanel({
 
   return (
     <div
-      className="overlay-panel-backdrop absolute inset-0 flex items-center justify-center"
-      style={{ pointerEvents: "auto" }}
+      className="overlay-panel-backdrop absolute inset-0 flex items-center justify-center pointer-events-auto"
     >
       <div className="overlay-panel w-[320px] p-5 text-foreground">
         <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -26,6 +25,7 @@ export default function JumpPanel({
           <span className="text-sm text-muted-foreground">#</span>
           <input
             autoFocus
+            aria-label="Jump to card number"
             className="w-20 rounded-lg border border-input bg-background/70 px-3 py-2 text-center text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             value={jumpInput}
             onChange={(e) => setJumpInput(e.target.value)}
@@ -45,7 +45,7 @@ export default function JumpPanel({
             placeholder="1"
           />
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">{totalCards}</p>
+        <p className="mt-3 text-xs text-muted-foreground">총 {totalCards}장</p>
       </div>
     </div>
   );
